@@ -12,7 +12,6 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as AppIndexRouteImport } from './routes/app.index'
 import { Route as AppThreatsRouteImport } from './routes/app.threats'
 import { Route as AppDashboardRouteImport } from './routes/app.dashboard'
 import { Route as AppConnectionRouteImport } from './routes/app.connection'
@@ -32,11 +31,6 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
-} as any)
-const AppIndexRoute = AppIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => AppRoute,
 } as any)
 const AppThreatsRoute = AppThreatsRouteImport.update({
   id: '/threats',
@@ -67,16 +61,15 @@ export interface FileRoutesByFullPath {
   '/app/connection': typeof AppConnectionRoute
   '/app/dashboard': typeof AppDashboardRoute
   '/app/threats': typeof AppThreatsRoute
-  '/app/': typeof AppIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
   '/app/agent': typeof AppAgentRoute
   '/app/connection': typeof AppConnectionRoute
   '/app/dashboard': typeof AppDashboardRoute
   '/app/threats': typeof AppThreatsRoute
-  '/app': typeof AppIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -87,7 +80,6 @@ export interface FileRoutesById {
   '/app/connection': typeof AppConnectionRoute
   '/app/dashboard': typeof AppDashboardRoute
   '/app/threats': typeof AppThreatsRoute
-  '/app/': typeof AppIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -99,16 +91,15 @@ export interface FileRouteTypes {
     | '/app/connection'
     | '/app/dashboard'
     | '/app/threats'
-    | '/app/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/app'
     | '/login'
     | '/app/agent'
     | '/app/connection'
     | '/app/dashboard'
     | '/app/threats'
-    | '/app'
   id:
     | '__root__'
     | '/'
@@ -118,7 +109,6 @@ export interface FileRouteTypes {
     | '/app/connection'
     | '/app/dashboard'
     | '/app/threats'
-    | '/app/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -149,13 +139,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
-    }
-    '/app/': {
-      id: '/app/'
-      path: '/'
-      fullPath: '/app/'
-      preLoaderRoute: typeof AppIndexRouteImport
-      parentRoute: typeof AppRoute
     }
     '/app/threats': {
       id: '/app/threats'
@@ -193,7 +176,6 @@ interface AppRouteChildren {
   AppConnectionRoute: typeof AppConnectionRoute
   AppDashboardRoute: typeof AppDashboardRoute
   AppThreatsRoute: typeof AppThreatsRoute
-  AppIndexRoute: typeof AppIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
@@ -201,7 +183,6 @@ const AppRouteChildren: AppRouteChildren = {
   AppConnectionRoute: AppConnectionRoute,
   AppDashboardRoute: AppDashboardRoute,
   AppThreatsRoute: AppThreatsRoute,
-  AppIndexRoute: AppIndexRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
@@ -214,3 +195,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
