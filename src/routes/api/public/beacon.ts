@@ -50,13 +50,8 @@ export const Route = createFileRoute("/api/public/beacon")({
         const result = scoreBeacon(body, { honeypot: true });
 
         // Bump hit counter
-        await supabaseAdmin.rpc("increment_hp_hits", { _slug: slug }).then(
-          () => null,
-          async () => {
-            // fall back: read + write
-            await supabaseAdmin.from("honeypot_keys").update({ hit_count: (Number((hp as any).hit_count) || 0) + 1 }).eq("id", hp.id);
-          }
-        );
+        const { data: cur } = await supabaseAdmin.from("honeypot_keys").select("hit_count").eq("id", hp.id).maybeSingle();
+        await supabaseAdmin.from("honeypot_keys").update({ hit_count: (Number(cur?.hit_count) || 0) + 1 }).eq("id", hp.id);
 
         // Pull this user's ES connection and index the event
         const { data: conn } = await supabaseAdmin
