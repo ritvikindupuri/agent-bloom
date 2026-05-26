@@ -19,7 +19,7 @@ function CampaignDetail() {
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["campaign", id] }); toast.success("Updated"); },
   });
 
-  const c = q.data?.campaign;
+  const c = q.data?.campaign as any;
   if (q.isLoading) return <div className="p-10 text-sm text-muted-foreground">Loading…</div>;
   if (!c) return <div className="p-10 text-sm text-muted-foreground">Campaign not found.</div>;
 
