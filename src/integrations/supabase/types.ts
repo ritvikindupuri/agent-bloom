@@ -82,6 +82,54 @@ export type Database = {
           },
         ]
       }
+      bot_campaigns: {
+        Row: {
+          created_at: string
+          event_count: number
+          fingerprint: Json
+          first_seen: string | null
+          id: string
+          ip_count: number
+          kill_rule: string | null
+          last_seen: string | null
+          name: string
+          signature_hash: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_count?: number
+          fingerprint?: Json
+          first_seen?: string | null
+          id?: string
+          ip_count?: number
+          kill_rule?: string | null
+          last_seen?: string | null
+          name: string
+          signature_hash: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          event_count?: number
+          fingerprint?: Json
+          first_seen?: string | null
+          id?: string
+          ip_count?: number
+          kill_rule?: string | null
+          last_seen?: string | null
+          name?: string
+          signature_hash?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       es_connections: {
         Row: {
           api_key: string
@@ -135,6 +183,60 @@ export type Database = {
           updated_at?: string
           url_field?: string
           user_agent_field?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      honeypot_keys: {
+        Row: {
+          created_at: string
+          hit_count: number
+          id: string
+          label: string
+          slug: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          hit_count?: number
+          id?: string
+          label?: string
+          slug: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          hit_count?: number
+          id?: string
+          label?: string
+          slug?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      mcp_tokens: {
+        Row: {
+          created_at: string
+          id: string
+          label: string
+          revoked_at: string | null
+          token_hash: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          label?: string
+          revoked_at?: string | null
+          token_hash: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          label?: string
+          revoked_at?: string | null
+          token_hash?: string
           user_id?: string
         }
         Relationships: []
