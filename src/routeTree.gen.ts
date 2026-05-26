@@ -12,10 +12,13 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as TrapSlugRouteImport } from './routes/trap.$slug'
 import { Route as AppThreatsRouteImport } from './routes/app.threats'
 import { Route as AppDashboardRouteImport } from './routes/app.dashboard'
 import { Route as AppConnectionRouteImport } from './routes/app.connection'
 import { Route as AppAgentRouteImport } from './routes/app.agent'
+import { Route as ApiMcpRouteImport } from './routes/api/mcp'
+import { Route as ApiPublicBeaconRouteImport } from './routes/api/public/beacon'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -30,6 +33,11 @@ const AppRoute = AppRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TrapSlugRoute = TrapSlugRouteImport.update({
+  id: '/trap/$slug',
+  path: '/trap/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppThreatsRoute = AppThreatsRouteImport.update({
@@ -52,34 +60,53 @@ const AppAgentRoute = AppAgentRouteImport.update({
   path: '/agent',
   getParentRoute: () => AppRoute,
 } as any)
+const ApiMcpRoute = ApiMcpRouteImport.update({
+  id: '/api/mcp',
+  path: '/api/mcp',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicBeaconRoute = ApiPublicBeaconRouteImport.update({
+  id: '/api/public/beacon',
+  path: '/api/public/beacon',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
+  '/api/mcp': typeof ApiMcpRoute
   '/app/agent': typeof AppAgentRoute
   '/app/connection': typeof AppConnectionRoute
   '/app/dashboard': typeof AppDashboardRoute
   '/app/threats': typeof AppThreatsRoute
+  '/trap/$slug': typeof TrapSlugRoute
+  '/api/public/beacon': typeof ApiPublicBeaconRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
+  '/api/mcp': typeof ApiMcpRoute
   '/app/agent': typeof AppAgentRoute
   '/app/connection': typeof AppConnectionRoute
   '/app/dashboard': typeof AppDashboardRoute
   '/app/threats': typeof AppThreatsRoute
+  '/trap/$slug': typeof TrapSlugRoute
+  '/api/public/beacon': typeof ApiPublicBeaconRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
+  '/api/mcp': typeof ApiMcpRoute
   '/app/agent': typeof AppAgentRoute
   '/app/connection': typeof AppConnectionRoute
   '/app/dashboard': typeof AppDashboardRoute
   '/app/threats': typeof AppThreatsRoute
+  '/trap/$slug': typeof TrapSlugRoute
+  '/api/public/beacon': typeof ApiPublicBeaconRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -87,34 +114,46 @@ export interface FileRouteTypes {
     | '/'
     | '/app'
     | '/login'
+    | '/api/mcp'
     | '/app/agent'
     | '/app/connection'
     | '/app/dashboard'
     | '/app/threats'
+    | '/trap/$slug'
+    | '/api/public/beacon'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/app'
     | '/login'
+    | '/api/mcp'
     | '/app/agent'
     | '/app/connection'
     | '/app/dashboard'
     | '/app/threats'
+    | '/trap/$slug'
+    | '/api/public/beacon'
   id:
     | '__root__'
     | '/'
     | '/app'
     | '/login'
+    | '/api/mcp'
     | '/app/agent'
     | '/app/connection'
     | '/app/dashboard'
     | '/app/threats'
+    | '/trap/$slug'
+    | '/api/public/beacon'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppRoute: typeof AppRouteWithChildren
   LoginRoute: typeof LoginRoute
+  ApiMcpRoute: typeof ApiMcpRoute
+  TrapSlugRoute: typeof TrapSlugRoute
+  ApiPublicBeaconRoute: typeof ApiPublicBeaconRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -138,6 +177,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/trap/$slug': {
+      id: '/trap/$slug'
+      path: '/trap/$slug'
+      fullPath: '/trap/$slug'
+      preLoaderRoute: typeof TrapSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/app/threats': {
@@ -168,6 +214,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAgentRouteImport
       parentRoute: typeof AppRoute
     }
+    '/api/mcp': {
+      id: '/api/mcp'
+      path: '/api/mcp'
+      fullPath: '/api/mcp'
+      preLoaderRoute: typeof ApiMcpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/beacon': {
+      id: '/api/public/beacon'
+      path: '/api/public/beacon'
+      fullPath: '/api/public/beacon'
+      preLoaderRoute: typeof ApiPublicBeaconRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -191,6 +251,9 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
   LoginRoute: LoginRoute,
+  ApiMcpRoute: ApiMcpRoute,
+  TrapSlugRoute: TrapSlugRoute,
+  ApiPublicBeaconRoute: ApiPublicBeaconRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
