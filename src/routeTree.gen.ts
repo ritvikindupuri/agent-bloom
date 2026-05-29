@@ -16,6 +16,7 @@ import { Route as TrapSlugRouteImport } from './routes/trap.$slug'
 import { Route as AppThreatsRouteImport } from './routes/app.threats'
 import { Route as AppMcpRouteImport } from './routes/app.mcp'
 import { Route as AppHoneypotsRouteImport } from './routes/app.honeypots'
+import { Route as AppHarvestRouteImport } from './routes/app.harvest'
 import { Route as AppDashboardRouteImport } from './routes/app.dashboard'
 import { Route as AppConnectionRouteImport } from './routes/app.connection'
 import { Route as AppCampaignsRouteImport } from './routes/app.campaigns'
@@ -57,6 +58,11 @@ const AppMcpRoute = AppMcpRouteImport.update({
 const AppHoneypotsRoute = AppHoneypotsRouteImport.update({
   id: '/honeypots',
   path: '/honeypots',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppHarvestRoute = AppHarvestRouteImport.update({
+  id: '/harvest',
+  path: '/harvest',
   getParentRoute: () => AppRoute,
 } as any)
 const AppDashboardRoute = AppDashboardRouteImport.update({
@@ -104,6 +110,7 @@ export interface FileRoutesByFullPath {
   '/app/campaigns': typeof AppCampaignsRouteWithChildren
   '/app/connection': typeof AppConnectionRoute
   '/app/dashboard': typeof AppDashboardRoute
+  '/app/harvest': typeof AppHarvestRoute
   '/app/honeypots': typeof AppHoneypotsRoute
   '/app/mcp': typeof AppMcpRoute
   '/app/threats': typeof AppThreatsRoute
@@ -120,6 +127,7 @@ export interface FileRoutesByTo {
   '/app/campaigns': typeof AppCampaignsRouteWithChildren
   '/app/connection': typeof AppConnectionRoute
   '/app/dashboard': typeof AppDashboardRoute
+  '/app/harvest': typeof AppHarvestRoute
   '/app/honeypots': typeof AppHoneypotsRoute
   '/app/mcp': typeof AppMcpRoute
   '/app/threats': typeof AppThreatsRoute
@@ -137,6 +145,7 @@ export interface FileRoutesById {
   '/app/campaigns': typeof AppCampaignsRouteWithChildren
   '/app/connection': typeof AppConnectionRoute
   '/app/dashboard': typeof AppDashboardRoute
+  '/app/harvest': typeof AppHarvestRoute
   '/app/honeypots': typeof AppHoneypotsRoute
   '/app/mcp': typeof AppMcpRoute
   '/app/threats': typeof AppThreatsRoute
@@ -155,6 +164,7 @@ export interface FileRouteTypes {
     | '/app/campaigns'
     | '/app/connection'
     | '/app/dashboard'
+    | '/app/harvest'
     | '/app/honeypots'
     | '/app/mcp'
     | '/app/threats'
@@ -171,6 +181,7 @@ export interface FileRouteTypes {
     | '/app/campaigns'
     | '/app/connection'
     | '/app/dashboard'
+    | '/app/harvest'
     | '/app/honeypots'
     | '/app/mcp'
     | '/app/threats'
@@ -187,6 +198,7 @@ export interface FileRouteTypes {
     | '/app/campaigns'
     | '/app/connection'
     | '/app/dashboard'
+    | '/app/harvest'
     | '/app/honeypots'
     | '/app/mcp'
     | '/app/threats'
@@ -253,6 +265,13 @@ declare module '@tanstack/react-router' {
       path: '/honeypots'
       fullPath: '/app/honeypots'
       preLoaderRoute: typeof AppHoneypotsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/harvest': {
+      id: '/app/harvest'
+      path: '/harvest'
+      fullPath: '/app/harvest'
+      preLoaderRoute: typeof AppHarvestRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/dashboard': {
@@ -324,6 +343,7 @@ interface AppRouteChildren {
   AppCampaignsRoute: typeof AppCampaignsRouteWithChildren
   AppConnectionRoute: typeof AppConnectionRoute
   AppDashboardRoute: typeof AppDashboardRoute
+  AppHarvestRoute: typeof AppHarvestRoute
   AppHoneypotsRoute: typeof AppHoneypotsRoute
   AppMcpRoute: typeof AppMcpRoute
   AppThreatsRoute: typeof AppThreatsRoute
@@ -334,6 +354,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppCampaignsRoute: AppCampaignsRouteWithChildren,
   AppConnectionRoute: AppConnectionRoute,
   AppDashboardRoute: AppDashboardRoute,
+  AppHarvestRoute: AppHarvestRoute,
   AppHoneypotsRoute: AppHoneypotsRoute,
   AppMcpRoute: AppMcpRoute,
   AppThreatsRoute: AppThreatsRoute,
