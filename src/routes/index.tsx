@@ -33,12 +33,15 @@ function Landing() {
               Powered by Gemini · Elasticsearch native
             </div>
             <h1 className="font-display text-6xl leading-[1.05] tracking-tight md:text-7xl">
-              Separate the wheat<br />
-              <span className="italic text-muted-foreground">from the chaff.</span>
+              Every bot leaves<br />
+              <span className="italic text-muted-foreground">chaff behind.</span>
             </h1>
             <p className="mx-auto mt-6 max-w-xl text-base text-muted-foreground md:text-lg">
-              Chaff is an autonomous agent that hunts bots in your real Elasticsearch traffic logs.
-              It investigates, finds evidence, and tells you exactly who to block.
+              Chaff is an autonomous agent that hunts bots in your traffic. Point it at a
+              live URL or your Elasticsearch logs — it harvests evidence, fingerprints the
+              attacker, and tells you exactly who to block. The name? Chaff is the residue
+              automated traffic always sheds: fake UAs, headless tells, impossible timings.
+              We collect it, the agent reads it.
             </p>
             <div className="mt-10 flex items-center justify-center gap-3">
               <Link to="/login" className="group inline-flex items-center gap-2 rounded-md bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90 transition">
