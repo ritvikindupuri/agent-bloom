@@ -136,7 +136,6 @@ export const harvestTraffic = createServerFn({ method: "POST" })
       }
       const latency = Date.now() - started;
       const cls = classifyUA(p.ua.ua);
-      const ip = pseudoIp(p.ua.family + ":" + target.hostname);
       const doc = {
         "@timestamp": new Date().toISOString(),
         verdict: p.ua.kind === "bad-bot" ? "bot" : p.ua.kind === "good-bot" ? "suspect" : "human",
@@ -150,8 +149,8 @@ export const harvestTraffic = createServerFn({ method: "POST" })
         ua_family: p.ua.family,
         slug: null,
         is_honeypot_hit: false,
-        ip,
-        ip_str: ip,
+        ip: null,
+        ip_str: null,
         country: null,
         path: p.path,
         origin: target.origin,
