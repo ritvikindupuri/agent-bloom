@@ -32,19 +32,6 @@ const UA_POOL: { ua: string; family: string; kind: "human" | "good-bot" | "bad-b
   { ua: "Mozilla/5.0 (compatible; AhrefsBot/7.0; +http://ahrefs.com/robot/)", family: "AhrefsBot", kind: "bad-bot" },
 ];
 
-function pseudoIp(seed: string): string {
-  let h = 2166136261;
-  for (let i = 0; i < seed.length; i++) {
-    h ^= seed.charCodeAt(i);
-    h = Math.imul(h, 16777619);
-  }
-  const a = (h >>> 24) & 0xff;
-  const b = (h >>> 16) & 0xff;
-  const c = (h >>> 8) & 0xff;
-  const d = h & 0xff;
-  // Avoid reserved ranges
-  return `${Math.max(1, a)}.${b}.${c}.${Math.max(1, d)}`;
-}
 
 async function planPaths(target: URL, count: number): Promise<string[]> {
   const apiKey = process.env.LOVABLE_API_KEY;
