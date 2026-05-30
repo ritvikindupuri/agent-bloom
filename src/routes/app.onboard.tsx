@@ -1,8 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
-import { activate, getActivation, getBlocklist } from "@/lib/activate.functions";
+import { activate, getActivation, getBlocklist, listSessions, clearSession, restoreSession } from "@/lib/activate.functions";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -11,7 +11,7 @@ import { toast } from "sonner";
 import {
   Globe, Database, Sparkles, Loader2, CheckCircle2, XCircle,
   ShieldAlert, Zap, ArrowRight, Eye, EyeOff, Crosshair, Download,
-  ShieldCheck, AlertTriangle, HelpCircle,
+  ShieldCheck, AlertTriangle, HelpCircle, History, Trash2, RotateCcw,
 } from "lucide-react";
 
 export const Route = createFileRoute("/app/onboard")({
@@ -57,6 +57,8 @@ const classBadge: Record<Offender["classification"], { cls: string; icon: any; l
 function OnboardPage() {
   const fnActivate = useServerFn(activate);
   const fnGet = useServerFn(getActivation);
+  const fnClear = useServerFn(clearSession);
+  const qc = useQueryClient();
 
   const existing = useQuery({ queryKey: ["activation"], queryFn: () => fnGet() });
 
@@ -65,6 +67,7 @@ function OnboardPage() {
   const [apiKey, setApiKey] = useState("");
   const [indexPattern, setIndexPattern] = useState("logs-*");
   const [showKey, setShowKey] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   const mut = useMutation({
     mutationFn: () => fnActivate({ data: { siteUrl, esEndpoint: endpoint, esApiKey: apiKey, indexPattern } }),
@@ -72,6 +75,7 @@ function OnboardPage() {
       if (r.ok) {
         toast.success("Chaff is live", { description: `${r.detectors.length} custom detectors deployed.` });
         existing.refetch();
+        qc.invalidateQueries({ queryKey: ["sessions"] });
       } else {
         toast.error(r.error);
       }
@@ -79,28 +83,69 @@ function OnboardPage() {
     onError: (e: any) => toast.error(e?.message ?? "Activation failed"),
   });
 
+  const clearMut = useMutation({
+    mutationFn: () => fnClear(),
+    onSuccess: () => {
+      toast.success("Session cleared", { description: "Saved to history. You can restore it anytime." });
+      setSiteUrl(""); setEndpoint(""); setApiKey(""); setIndexPattern("logs-*");
+      mut.reset();
+      existing.refetch();
+      qc.invalidateQueries({ queryKey: ["sessions"] });
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Failed to clear"),
+  });
+
   const result = mut.data && mut.data.ok ? mut.data : null;
   const failedSteps = mut.data && !mut.data.ok ? mut.data : null;
   const live = existing.data?.connection;
+  const hasSession = !!live || !!result || !!siteUrl || !!endpoint || !!apiKey;
 
   const canActivate = siteUrl.trim() && endpoint.trim() && apiKey.trim() && !mut.isPending;
 
   return (
     <div className="p-10 max-w-5xl mx-auto space-y-8">
-      <div className="flex items-end justify-between">
+      <div className="flex items-end justify-between gap-4 flex-wrap">
         <div>
           <h1 className="font-display text-4xl tracking-tight">Activate Chaff</h1>
           <p className="mt-1 text-sm text-muted-foreground max-w-2xl">
             Two inputs. Our agent scans your site, learns your log schema, and writes a custom bot-detection pack tailored to your exact routes.
           </p>
         </div>
-        {live && (
-          <Badge variant="secondary" className="gap-1.5 px-3 py-1">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            Live: {live.label}
-          </Badge>
-        )}
+        <div className="flex items-center gap-2">
+          {live && (
+            <Badge variant="secondary" className="gap-1.5 px-3 py-1">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              Live: {live.label}
+            </Badge>
+          )}
+          <Button variant="outline" size="sm" onClick={() => setHistoryOpen(true)} className="gap-1.5">
+            <History className="h-3.5 w-3.5" /> History
+          </Button>
+          {hasSession && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => clearMut.mutate()}
+              disabled={clearMut.isPending}
+              className="gap-1.5"
+            >
+              {clearMut.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+              Clear session
+            </Button>
+          )}
+        </div>
       </div>
+
+      {historyOpen && (
+        <HistoryPanel
+          onClose={() => setHistoryOpen(false)}
+          onRestored={() => {
+            mut.reset();
+            existing.refetch();
+            setHistoryOpen(false);
+          }}
+        />
+      )}
 
       {/* The 2-input form */}
       <Card className="bg-surface/40 border-border p-6">
@@ -471,6 +516,76 @@ function SchemaPill({ label, value }: { label: string; value: string }) {
     <div className="rounded border border-border bg-background/40 px-2.5 py-2">
       <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</div>
       <div className="font-mono text-[11px] truncate" title={value}>{value}</div>
+    </div>
+  );
+}
+
+function HistoryPanel({ onClose, onRestored }: { onClose: () => void; onRestored: () => void }) {
+  const fnList = useServerFn(listSessions);
+  const fnRestore = useServerFn(restoreSession);
+  const qc = useQueryClient();
+  const q = useQuery({ queryKey: ["sessions"], queryFn: () => fnList() });
+  const restore = useMutation({
+    mutationFn: (id: string) => fnRestore({ data: { id } }),
+    onSuccess: () => {
+      toast.success("Session restored");
+      qc.invalidateQueries({ queryKey: ["sessions"] });
+      qc.invalidateQueries({ queryKey: ["activation"] });
+      qc.invalidateQueries({ queryKey: ["blocklist"] });
+      onRestored();
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Restore failed"),
+  });
+  const sessions = q.data?.sessions ?? [];
+  return (
+    <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
+      <Card className="bg-surface border-border p-5 max-w-2xl w-full max-h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h3 className="font-display text-xl flex items-center gap-2"><History className="h-4 w-4" /> Session history</h3>
+            <p className="text-xs text-muted-foreground">Past activations. Click restore to reload that exact session.</p>
+          </div>
+          <Button variant="ghost" size="sm" onClick={onClose}>Close</Button>
+        </div>
+        <div className="flex-1 overflow-auto space-y-2">
+          {q.isLoading && <div className="text-sm text-muted-foreground">Loading…</div>}
+          {!q.isLoading && sessions.length === 0 && (
+            <div className="text-sm text-muted-foreground py-8 text-center">No sessions yet.</div>
+          )}
+          {sessions.map((s) => (
+            <div key={s.id} className="rounded-md border border-border bg-background/40 p-3 flex items-center gap-3">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="font-medium text-sm truncate">{s.label}</span>
+                  {s.is_active && (
+                    <Badge variant="secondary" className="gap-1 text-[10px]">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> Active
+                    </Badge>
+                  )}
+                </div>
+                <div className="text-[11px] text-muted-foreground font-mono truncate">
+                  {s.site_url ?? "—"} · {s.index_pattern} · {s.detector_count} detectors
+                </div>
+                <div className="text-[10px] text-muted-foreground mt-0.5">
+                  {new Date(s.created_at).toLocaleString()}
+                </div>
+              </div>
+              {!s.is_active && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={restore.isPending}
+                  onClick={() => restore.mutate(s.id)}
+                  className="gap-1.5 shrink-0"
+                >
+                  {restore.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RotateCcw className="h-3.5 w-3.5" />}
+                  Restore
+                </Button>
+              )}
+            </div>
+          ))}
+        </div>
+      </Card>
     </div>
   );
 }
