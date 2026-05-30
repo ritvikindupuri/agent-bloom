@@ -120,6 +120,10 @@ function Landing() {
               className="relative"
             >
               <div className="rounded-2xl border border-border bg-surface/50 p-1 shadow-2xl">
+                <div className="flex items-center justify-between border-b border-border/60 px-5 py-2 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                  <span>Example trace</span>
+                  <span className="text-[color:var(--bot)]">● live demo</span>
+                </div>
                 <div className="rounded-xl border border-border/60 bg-background p-5 font-mono text-[12px] leading-6">
                   <TraceLine delay={0.2} className="text-muted-foreground">{">"} chaff: investigate spike at 14:02 UTC</TraceLine>
                   <TraceLine delay={0.5} className="mt-1 text-primary">→ search_logs (range=30m, agg=top_ips)</TraceLine>
