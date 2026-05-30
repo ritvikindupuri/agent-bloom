@@ -5,6 +5,7 @@ import { listCampaigns, clusterCampaigns } from "@/lib/campaigns.functions";
 import { Button } from "@/components/ui/button";
 import { Sparkles, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
+import { Hint } from "@/components/Hint";
 
 export const Route = createFileRoute("/app/campaigns")({ component: CampaignsPage });
 
