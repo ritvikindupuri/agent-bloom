@@ -19,9 +19,9 @@ import { Route as AppMcpRouteImport } from './routes/app.mcp'
 import { Route as AppHoneypotsRouteImport } from './routes/app.honeypots'
 import { Route as AppHarvestRouteImport } from './routes/app.harvest'
 import { Route as AppDashboardRouteImport } from './routes/app.dashboard'
-import { Route as AppCampaignsRouteImport } from './routes/app.campaigns'
 import { Route as AppAgentRouteImport } from './routes/app.agent'
 import { Route as ApiMcpRouteImport } from './routes/api/mcp'
+import { Route as AppCampaignsIndexRouteImport } from './routes/app.campaigns.index'
 import { Route as AppCampaignsIdRouteImport } from './routes/app.campaigns.$id'
 import { Route as ApiPublicBeaconRouteImport } from './routes/api/public/beacon'
 import { Route as ApiPublicHooksRescanRouteImport } from './routes/api/public/hooks/rescan'
@@ -76,11 +76,6 @@ const AppDashboardRoute = AppDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AppRoute,
 } as any)
-const AppCampaignsRoute = AppCampaignsRouteImport.update({
-  id: '/campaigns',
-  path: '/campaigns',
-  getParentRoute: () => AppRoute,
-} as any)
 const AppAgentRoute = AppAgentRouteImport.update({
   id: '/agent',
   path: '/agent',
@@ -91,10 +86,15 @@ const ApiMcpRoute = ApiMcpRouteImport.update({
   path: '/api/mcp',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppCampaignsIndexRoute = AppCampaignsIndexRouteImport.update({
+  id: '/campaigns/',
+  path: '/campaigns/',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppCampaignsIdRoute = AppCampaignsIdRouteImport.update({
-  id: '/$id',
-  path: '/$id',
-  getParentRoute: () => AppCampaignsRoute,
+  id: '/campaigns/$id',
+  path: '/campaigns/$id',
+  getParentRoute: () => AppRoute,
 } as any)
 const ApiPublicBeaconRoute = ApiPublicBeaconRouteImport.update({
   id: '/api/public/beacon',
@@ -113,7 +113,6 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/api/mcp': typeof ApiMcpRoute
   '/app/agent': typeof AppAgentRoute
-  '/app/campaigns': typeof AppCampaignsRouteWithChildren
   '/app/dashboard': typeof AppDashboardRoute
   '/app/harvest': typeof AppHarvestRoute
   '/app/honeypots': typeof AppHoneypotsRoute
@@ -123,6 +122,7 @@ export interface FileRoutesByFullPath {
   '/trap/$slug': typeof TrapSlugRoute
   '/api/public/beacon': typeof ApiPublicBeaconRoute
   '/app/campaigns/$id': typeof AppCampaignsIdRoute
+  '/app/campaigns/': typeof AppCampaignsIndexRoute
   '/api/public/hooks/rescan': typeof ApiPublicHooksRescanRoute
 }
 export interface FileRoutesByTo {
@@ -131,7 +131,6 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/api/mcp': typeof ApiMcpRoute
   '/app/agent': typeof AppAgentRoute
-  '/app/campaigns': typeof AppCampaignsRouteWithChildren
   '/app/dashboard': typeof AppDashboardRoute
   '/app/harvest': typeof AppHarvestRoute
   '/app/honeypots': typeof AppHoneypotsRoute
@@ -141,6 +140,7 @@ export interface FileRoutesByTo {
   '/trap/$slug': typeof TrapSlugRoute
   '/api/public/beacon': typeof ApiPublicBeaconRoute
   '/app/campaigns/$id': typeof AppCampaignsIdRoute
+  '/app/campaigns': typeof AppCampaignsIndexRoute
   '/api/public/hooks/rescan': typeof ApiPublicHooksRescanRoute
 }
 export interface FileRoutesById {
@@ -150,7 +150,6 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/api/mcp': typeof ApiMcpRoute
   '/app/agent': typeof AppAgentRoute
-  '/app/campaigns': typeof AppCampaignsRouteWithChildren
   '/app/dashboard': typeof AppDashboardRoute
   '/app/harvest': typeof AppHarvestRoute
   '/app/honeypots': typeof AppHoneypotsRoute
@@ -160,6 +159,7 @@ export interface FileRoutesById {
   '/trap/$slug': typeof TrapSlugRoute
   '/api/public/beacon': typeof ApiPublicBeaconRoute
   '/app/campaigns/$id': typeof AppCampaignsIdRoute
+  '/app/campaigns/': typeof AppCampaignsIndexRoute
   '/api/public/hooks/rescan': typeof ApiPublicHooksRescanRoute
 }
 export interface FileRouteTypes {
@@ -170,7 +170,6 @@ export interface FileRouteTypes {
     | '/login'
     | '/api/mcp'
     | '/app/agent'
-    | '/app/campaigns'
     | '/app/dashboard'
     | '/app/harvest'
     | '/app/honeypots'
@@ -180,6 +179,7 @@ export interface FileRouteTypes {
     | '/trap/$slug'
     | '/api/public/beacon'
     | '/app/campaigns/$id'
+    | '/app/campaigns/'
     | '/api/public/hooks/rescan'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -188,7 +188,6 @@ export interface FileRouteTypes {
     | '/login'
     | '/api/mcp'
     | '/app/agent'
-    | '/app/campaigns'
     | '/app/dashboard'
     | '/app/harvest'
     | '/app/honeypots'
@@ -198,6 +197,7 @@ export interface FileRouteTypes {
     | '/trap/$slug'
     | '/api/public/beacon'
     | '/app/campaigns/$id'
+    | '/app/campaigns'
     | '/api/public/hooks/rescan'
   id:
     | '__root__'
@@ -206,7 +206,6 @@ export interface FileRouteTypes {
     | '/login'
     | '/api/mcp'
     | '/app/agent'
-    | '/app/campaigns'
     | '/app/dashboard'
     | '/app/harvest'
     | '/app/honeypots'
@@ -216,6 +215,7 @@ export interface FileRouteTypes {
     | '/trap/$slug'
     | '/api/public/beacon'
     | '/app/campaigns/$id'
+    | '/app/campaigns/'
     | '/api/public/hooks/rescan'
   fileRoutesById: FileRoutesById
 }
@@ -301,13 +301,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppDashboardRouteImport
       parentRoute: typeof AppRoute
     }
-    '/app/campaigns': {
-      id: '/app/campaigns'
-      path: '/campaigns'
-      fullPath: '/app/campaigns'
-      preLoaderRoute: typeof AppCampaignsRouteImport
-      parentRoute: typeof AppRoute
-    }
     '/app/agent': {
       id: '/app/agent'
       path: '/agent'
@@ -322,12 +315,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiMcpRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/app/campaigns/': {
+      id: '/app/campaigns/'
+      path: '/campaigns'
+      fullPath: '/app/campaigns/'
+      preLoaderRoute: typeof AppCampaignsIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/campaigns/$id': {
       id: '/app/campaigns/$id'
-      path: '/$id'
+      path: '/campaigns/$id'
       fullPath: '/app/campaigns/$id'
       preLoaderRoute: typeof AppCampaignsIdRouteImport
-      parentRoute: typeof AppCampaignsRoute
+      parentRoute: typeof AppRoute
     }
     '/api/public/beacon': {
       id: '/api/public/beacon'
@@ -346,38 +346,28 @@ declare module '@tanstack/react-router' {
   }
 }
 
-interface AppCampaignsRouteChildren {
-  AppCampaignsIdRoute: typeof AppCampaignsIdRoute
-}
-
-const AppCampaignsRouteChildren: AppCampaignsRouteChildren = {
-  AppCampaignsIdRoute: AppCampaignsIdRoute,
-}
-
-const AppCampaignsRouteWithChildren = AppCampaignsRoute._addFileChildren(
-  AppCampaignsRouteChildren,
-)
-
 interface AppRouteChildren {
   AppAgentRoute: typeof AppAgentRoute
-  AppCampaignsRoute: typeof AppCampaignsRouteWithChildren
   AppDashboardRoute: typeof AppDashboardRoute
   AppHarvestRoute: typeof AppHarvestRoute
   AppHoneypotsRoute: typeof AppHoneypotsRoute
   AppMcpRoute: typeof AppMcpRoute
   AppOnboardRoute: typeof AppOnboardRoute
   AppThreatsRoute: typeof AppThreatsRoute
+  AppCampaignsIdRoute: typeof AppCampaignsIdRoute
+  AppCampaignsIndexRoute: typeof AppCampaignsIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
   AppAgentRoute: AppAgentRoute,
-  AppCampaignsRoute: AppCampaignsRouteWithChildren,
   AppDashboardRoute: AppDashboardRoute,
   AppHarvestRoute: AppHarvestRoute,
   AppHoneypotsRoute: AppHoneypotsRoute,
   AppMcpRoute: AppMcpRoute,
   AppOnboardRoute: AppOnboardRoute,
   AppThreatsRoute: AppThreatsRoute,
+  AppCampaignsIdRoute: AppCampaignsIdRoute,
+  AppCampaignsIndexRoute: AppCampaignsIndexRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
