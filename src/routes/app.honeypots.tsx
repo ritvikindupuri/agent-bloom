@@ -92,9 +92,11 @@ function CopyField({ label, value, multi }: { label: string; value: string; mult
       <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">{label}</div>
       <div className="flex gap-1.5">
         <code className={`flex-1 rounded-md border border-border bg-background px-2.5 py-1.5 text-xs font-mono ${multi ? "whitespace-pre" : "truncate"}`}>{value}</code>
-        <button onClick={() => { navigator.clipboard.writeText(value); toast.success("Copied"); }} className="rounded-md border border-border px-2 hover:bg-accent">
-          <Copy className="h-3.5 w-3.5" />
-        </button>
+        <Hint label="Copy to clipboard">
+          <button onClick={() => { navigator.clipboard.writeText(value); toast.success("Copied"); }} className="rounded-md border border-border px-2 hover:bg-accent">
+            <Copy className="h-3.5 w-3.5" />
+          </button>
+        </Hint>
       </div>
     </div>
   );
