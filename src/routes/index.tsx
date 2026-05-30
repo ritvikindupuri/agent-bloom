@@ -101,9 +101,9 @@ function Landing() {
 
         <section className="border-t border-border/60 bg-surface/30">
           <div className="mx-auto max-w-4xl px-6 py-24 text-center">
-            <h2 className="font-display text-4xl tracking-tight md:text-5xl">No logs yet? Start hunting anyway.</h2>
+            <h2 className="font-display text-4xl tracking-tight md:text-5xl">No logs yet? Start before the first visitor.</h2>
             <p className="mx-auto mt-3 max-w-md text-muted-foreground">
-              Drop in a URL. Chaff harvests live traffic against it and ships it to your index in seconds.
+              Paste your URL. We fingerprint your stack, map your attack surface, and hand back the exact one-line install. The agent starts hunting the moment real traffic flows.
             </p>
             <Link to="/login" className="mt-8 inline-flex items-center gap-2 rounded-md bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90 transition">
               Get started <ArrowRight className="h-4 w-4" />
