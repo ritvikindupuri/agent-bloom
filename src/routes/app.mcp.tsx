@@ -75,7 +75,7 @@ function McpPage() {
               <div className="font-medium">{t.label}</div>
               <div className="text-xs text-muted-foreground mt-0.5">Created {new Date(t.created_at).toLocaleString()}{t.revoked_at ? ` · revoked ${new Date(t.revoked_at).toLocaleString()}` : ""}</div>
             </div>
-            {!t.revoked_at && <button onClick={() => r.mutate(t.id)} className="text-xs text-destructive hover:underline">Revoke</button>}
+            {!t.revoked_at && <Hint label="Permanently disable this token. MCP clients using it will lose access immediately."><button onClick={() => r.mutate(t.id)} className="text-xs text-destructive hover:underline">Revoke</button></Hint>}
           </div>
         )) : (
           <div className="p-8 text-center text-sm text-muted-foreground">No tokens yet.</div>
