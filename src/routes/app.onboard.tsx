@@ -519,3 +519,73 @@ function SchemaPill({ label, value }: { label: string; value: string }) {
     </div>
   );
 }
+
+function HistoryPanel({ onClose, onRestored }: { onClose: () => void; onRestored: () => void }) {
+  const fnList = useServerFn(listSessions);
+  const fnRestore = useServerFn(restoreSession);
+  const qc = useQueryClient();
+  const q = useQuery({ queryKey: ["sessions"], queryFn: () => fnList() });
+  const restore = useMutation({
+    mutationFn: (id: string) => fnRestore({ data: { id } }),
+    onSuccess: () => {
+      toast.success("Session restored");
+      qc.invalidateQueries({ queryKey: ["sessions"] });
+      qc.invalidateQueries({ queryKey: ["activation"] });
+      qc.invalidateQueries({ queryKey: ["blocklist"] });
+      onRestored();
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Restore failed"),
+  });
+  const sessions = q.data?.sessions ?? [];
+  return (
+    <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
+      <Card className="bg-surface border-border p-5 max-w-2xl w-full max-h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h3 className="font-display text-xl flex items-center gap-2"><History className="h-4 w-4" /> Session history</h3>
+            <p className="text-xs text-muted-foreground">Past activations. Click restore to reload that exact session.</p>
+          </div>
+          <Button variant="ghost" size="sm" onClick={onClose}>Close</Button>
+        </div>
+        <div className="flex-1 overflow-auto space-y-2">
+          {q.isLoading && <div className="text-sm text-muted-foreground">Loading…</div>}
+          {!q.isLoading && sessions.length === 0 && (
+            <div className="text-sm text-muted-foreground py-8 text-center">No sessions yet.</div>
+          )}
+          {sessions.map((s) => (
+            <div key={s.id} className="rounded-md border border-border bg-background/40 p-3 flex items-center gap-3">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="font-medium text-sm truncate">{s.label}</span>
+                  {s.is_active && (
+                    <Badge variant="secondary" className="gap-1 text-[10px]">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> Active
+                    </Badge>
+                  )}
+                </div>
+                <div className="text-[11px] text-muted-foreground font-mono truncate">
+                  {s.site_url ?? "—"} · {s.index_pattern} · {s.detector_count} detectors
+                </div>
+                <div className="text-[10px] text-muted-foreground mt-0.5">
+                  {new Date(s.created_at).toLocaleString()}
+                </div>
+              </div>
+              {!s.is_active && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={restore.isPending}
+                  onClick={() => restore.mutate(s.id)}
+                  className="gap-1.5 shrink-0"
+                >
+                  {restore.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RotateCcw className="h-3.5 w-3.5" />}
+                  Restore
+                </Button>
+              )}
+            </div>
+          ))}
+        </div>
+      </Card>
+    </div>
+  );
+}
