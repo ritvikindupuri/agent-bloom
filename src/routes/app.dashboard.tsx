@@ -59,10 +59,12 @@ function Dashboard() {
             <DemoControls onChange={() => m.refetch()} />
             <div className="flex gap-1 rounded-md border border-border bg-surface/40 p-0.5">
               {RANGES.map((r) => (
-                <button key={r.value} onClick={() => setRange(r.value)}
-                  className={`px-2.5 py-1 rounded text-xs transition ${range === r.value ? "bg-accent text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
-                  {r.label}
-                </button>
+                <Hint key={r.value} label={`Show traffic from the last ${r.label}`}>
+                  <button onClick={() => setRange(r.value)}
+                    className={`px-2.5 py-1 rounded text-xs transition ${range === r.value ? "bg-accent text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
+                    {r.label}
+                  </button>
+                </Hint>
               ))}
             </div>
           </div>
