@@ -9,6 +9,10 @@ export type IpEnrichment = {
   verifiedBot: VerifiedBotKind;
   isDatacenter: boolean;
   isTor: boolean;
+  abuseScore: number | null;          // 0-100 from AbuseIPDB, null if not available
+  abuseReports: number | null;        // total abuse reports last 90d
+  usageType: string | null;           // "Data Center/Web Hosting/Transit", "Residential", etc.
+  countryCode: string | null;
   confidence: number;       // 0-100 — likelihood this IP is a malicious bot
   classification: "verified_bot" | "malicious" | "suspicious" | "benign" | "unknown";
   reasons: string[];
