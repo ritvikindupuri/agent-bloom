@@ -79,10 +79,10 @@ function Dashboard() {
       )}
 
       <div className="mt-6 grid gap-4 md:grid-cols-4">
-        <Stat label="Total requests" value={metrics?.totalRequests} icon={<Activity className="h-4 w-4" />} loading={m.isLoading} />
-        <Stat label="Bot traffic" value={metrics?.botRequests} icon={<Bot className="h-4 w-4" />} accent="bot" loading={m.isLoading} />
-        <Stat label="Human traffic" value={metrics?.humanRequests} icon={<User className="h-4 w-4" />} accent="human" loading={m.isLoading} />
-        <Stat label="Unique IPs" value={metrics?.uniqueIps} icon={<Globe className="h-4 w-4" />} loading={m.isLoading} />
+        <Stat label="Total requests" hint="Every request seen in your Elasticsearch index for the selected window." value={metrics?.totalRequests} icon={<Activity className="h-4 w-4" />} loading={m.isLoading} />
+        <Stat label="Bot traffic" hint="Requests Chaff classified as automated — known scrapers, scanners, datacenter IPs, UA mismatches." value={metrics?.botRequests} icon={<Bot className="h-4 w-4" />} accent="bot" loading={m.isLoading} />
+        <Stat label="Human traffic" hint="Requests that look like real users — residential IPs, plausible browser fingerprints." value={metrics?.humanRequests} icon={<User className="h-4 w-4" />} accent="human" loading={m.isLoading} />
+        <Stat label="Unique IPs" hint="Distinct source IPs in the selected window." value={metrics?.uniqueIps} icon={<Globe className="h-4 w-4" />} loading={m.isLoading} />
       </div>
 
       <Card className="mt-6 bg-surface/40 border-border">
