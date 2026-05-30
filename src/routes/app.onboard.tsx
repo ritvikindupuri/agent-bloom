@@ -13,6 +13,7 @@ import {
   ShieldAlert, Zap, ArrowRight, Eye, EyeOff, Crosshair, Download,
   ShieldCheck, AlertTriangle, HelpCircle, History, Trash2, RotateCcw,
 } from "lucide-react";
+import { Hint } from "@/components/Hint";
 
 export const Route = createFileRoute("/app/onboard")({
   component: OnboardPage,
