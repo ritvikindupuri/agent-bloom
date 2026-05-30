@@ -246,7 +246,7 @@ function OnboardPage() {
             <Crosshair className="h-3.5 w-3.5" /> Active detector pack
           </div>
           <div className="space-y-2">
-            {(live.detector_pack.detectors as Detector[]).map((d) => <DetectorRow key={d.id} d={d} />)}
+            {(((live.detector_pack as any)?.detectors ?? []) as Detector[]).map((d) => <DetectorRow key={d.id} d={d} />)}
           </div>
           <p className="mt-4 text-xs text-muted-foreground">
             Re-activate above to regenerate detectors after site changes.
