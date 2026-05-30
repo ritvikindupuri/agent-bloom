@@ -103,13 +103,15 @@ function AgentPage() {
               >
                 {c.title}
               </button>
-              <button
-                onClick={() => del.mutate(c.id)}
-                className="absolute right-2 top-2 hidden group-hover:block text-muted-foreground hover:text-destructive"
-                aria-label="Delete"
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </button>
+              <Hint label="Delete this investigation and its messages." side="right">
+                <button
+                  onClick={() => del.mutate(c.id)}
+                  className="absolute right-2 top-2 hidden group-hover:block text-muted-foreground hover:text-destructive"
+                  aria-label="Delete"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              </Hint>
             </div>
           ))}
           {(convs.data?.conversations ?? []).length === 0 && (
