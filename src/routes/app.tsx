@@ -2,7 +2,7 @@ import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from "@tan
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Logo } from "@/components/Logo";
-import { LayoutDashboard, Bot, ShieldAlert, Plug, LogOut, Crosshair, Network, Plug2, Radar } from "lucide-react";
+import { LayoutDashboard, Bot, ShieldAlert, Plug, LogOut, Crosshair, Network, Plug2, Code2 } from "lucide-react";
 
 export const Route = createFileRoute("/app")({
   component: AppLayout,
@@ -10,7 +10,7 @@ export const Route = createFileRoute("/app")({
 
 const NAV = [
   { to: "/app/dashboard", label: "Live", icon: LayoutDashboard },
-  { to: "/app/harvest", label: "Harvest", icon: Radar },
+  { to: "/app/harvest", label: "Install", icon: Code2 },
   { to: "/app/campaigns", label: "Campaigns", icon: Network },
   { to: "/app/honeypots", label: "Honeypots", icon: Crosshair },
   { to: "/app/agent", label: "Agent", icon: Bot },

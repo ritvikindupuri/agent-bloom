@@ -1,122 +1,109 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { createFileRoute } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { harvestTraffic } from "@/lib/harvest.functions";
-import { Crosshair, Loader2, Radar, ArrowRight } from "lucide-react";
+import { useMemo, useState } from "react";
+import { listHoneypots, createHoneypot } from "@/lib/honeypots.functions";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Copy, Check, Radar, Plus } from "lucide-react";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/app/harvest")({
-  component: HarvestPage,
+  component: InstallPage,
 });
 
-function HarvestPage() {
-  const harvest = useServerFn(harvestTraffic);
-  const [target, setTarget] = useState("");
-  const [count, setCount] = useState(20);
-  const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<Awaited<ReturnType<typeof harvestTraffic>> | null>(null);
-  const [error, setError] = useState<string | null>(null);
+function InstallPage() {
+  const fnList = useServerFn(listHoneypots);
+  const fnCreate = useServerFn(createHoneypot);
+  const q = useQuery({ queryKey: ["honeypots"], queryFn: () => fnList() });
+  const [label, setLabel] = useState("My site");
+  const [copied, setCopied] = useState<string | null>(null);
 
-  const run = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
-    setResult(null);
-    try {
-      const r = await harvest({ data: { target, count } });
-      setResult(r);
-    } catch (e: any) {
-      setError(e?.message ?? "Harvest failed");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const hp = q.data?.honeypots?.[0];
+  const origin = typeof window !== "undefined" ? window.location.origin : "";
+
+  const snippet = useMemo(() => {
+    if (!hp) return "";
+    return `<!-- Chaff beacon -->
+<script>window.__chaff_slug = "${hp.slug}";</script>
+<script async src="${origin}/beacon.js"></script>`;
+  }, [hp, origin]);
+
+  async function copy(text: string, key: string) {
+    await navigator.clipboard.writeText(text);
+    setCopied(key);
+    toast.success("Copied");
+    setTimeout(() => setCopied(null), 1200);
+  }
+
+  async function create() {
+    await fnCreate({ data: { label } });
+    toast.success("Site key created");
+    q.refetch();
+  }
 
   return (
-    <div className="mx-auto max-w-4xl p-8">
-      <div className="flex items-center gap-2 text-xs uppercase tracking-widest text-muted-foreground">
-        <Radar className="h-3.5 w-3.5" /> Traffic Harvester
+    <div className="p-10 max-w-3xl">
+      <div>
+        <h1 className="font-display text-4xl tracking-tight">Install</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Drop this snippet into your site. Every real visitor's signals are fingerprinted client-side and shipped straight into your Elasticsearch index — no synthetic traffic, no log shipper to run.
+        </p>
       </div>
-      <h1 className="mt-2 font-display text-4xl tracking-tight">No logs? No problem.</h1>
-      <p className="mt-3 max-w-2xl text-muted-foreground">
-        Point Chaff at a URL. A Gemini-orchestrated probe makes <span className="text-foreground">real HTTP requests</span> against
-        it with a curated mix of browser and bot user-agents, captures actual responses,
-        and ships them as access-log events into your Elasticsearch index. Then run the
-        Agent to hunt the bots it just planted alongside any real traffic.
-      </p>
 
-      <form onSubmit={run} className="mt-8 space-y-4 rounded-2xl border border-border bg-surface/40 p-6">
-        <div>
-          <label className="text-xs uppercase tracking-widest text-muted-foreground">Target URL</label>
-          <input
-            type="url"
-            required
-            placeholder="https://your-site.com"
-            value={target}
-            onChange={(e) => setTarget(e.target.value)}
-            className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
-          />
-        </div>
-        <div>
-          <label className="text-xs uppercase tracking-widest text-muted-foreground">Probes ({count})</label>
-          <input
-            type="range"
-            min={5}
-            max={40}
-            value={count}
-            onChange={(e) => setCount(parseInt(e.target.value))}
-            className="mt-2 w-full"
-          />
-        </div>
-        <button
-          disabled={loading}
-          className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
-        >
-          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Crosshair className="h-4 w-4" />}
-          {loading ? "Harvesting…" : "Harvest & index"}
-        </button>
-        {error && <div className="text-sm text-destructive">{error}</div>}
-      </form>
-
-      {result && (
-        <div className="mt-6 space-y-4">
-          <div className="rounded-2xl border border-border bg-surface/40 p-5">
-            <div className="flex items-baseline gap-6">
-              <div>
-                <div className="text-xs uppercase tracking-widest text-muted-foreground">Indexed</div>
-                <div className="font-display text-3xl">{result.indexed}</div>
-              </div>
-              <div>
-                <div className="text-xs uppercase tracking-widest text-muted-foreground">Errors</div>
-                <div className="font-display text-3xl">{result.errors}</div>
-              </div>
-              <div className="text-sm text-muted-foreground break-all">→ {result.target}</div>
-            </div>
+      {!hp && (
+        <Card className="mt-8 bg-surface/40 border-border p-6">
+          <div className="flex items-center gap-2"><Radar className="h-4 w-4 text-muted-foreground" /><span className="text-sm font-medium">Create a site key</span></div>
+          <p className="mt-1 text-xs text-muted-foreground">One key per site. We'll use its slug to route beacons to your tenant.</p>
+          <div className="mt-4 flex gap-2">
+            <Input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="My site" />
+            <Button onClick={create}><Plus className="h-4 w-4 mr-1" /> Create</Button>
           </div>
+        </Card>
+      )}
 
-          {result.samples.length > 0 && (
-            <div className="rounded-2xl border border-border bg-surface/40 p-5">
-              <div className="text-xs uppercase tracking-widest text-muted-foreground mb-3">Sample probes</div>
-              <div className="space-y-1.5 font-mono text-[12px]">
-                {result.samples.map((s, i) => (
-                  <div key={i} className="flex items-center gap-3">
-                    <span className={s.verdict === "bot" ? "text-[color:var(--bot)]" : s.verdict === "suspect" ? "text-amber-400" : "text-emerald-400"}>●</span>
-                    <span className="w-16 text-muted-foreground">{s.status}</span>
-                    <span className="w-20 text-muted-foreground">{s.latency}ms</span>
-                    <span className="w-40 truncate">{s.ua_family}</span>
-                    <span className="truncate text-muted-foreground">{s.path}</span>
-                  </div>
-                ))}
+      {hp && (
+        <>
+          <Card className="mt-8 bg-surface/40 border-border p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-xs uppercase tracking-wider text-muted-foreground">Site key</div>
+                <div className="mt-1 font-mono text-sm">{hp.slug}</div>
               </div>
+              <Button size="sm" variant="outline" onClick={() => copy(hp.slug, "slug")}>
+                {copied === "slug" ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+              </Button>
             </div>
-          )}
+          </Card>
 
-          <Link
-            to="/app/agent"
-            className="inline-flex items-center gap-2 rounded-md border border-border bg-surface/60 px-4 py-2 text-sm hover:bg-surface"
-          >
-            Hunt these bots in the Agent <ArrowRight className="h-4 w-4" />
-          </Link>
-        </div>
+          <Card className="mt-4 bg-surface/40 border-border p-6">
+            <div className="flex items-center justify-between">
+              <div className="text-xs uppercase tracking-wider text-muted-foreground">Embed snippet</div>
+              <Button size="sm" variant="outline" onClick={() => copy(snippet, "snip")}>
+                {copied === "snip" ? <Check className="h-3.5 w-3.5 mr-1" /> : <Copy className="h-3.5 w-3.5 mr-1" />}
+                Copy
+              </Button>
+            </div>
+            <pre className="mt-3 overflow-auto rounded bg-background/60 p-4 font-mono text-[12px] text-foreground/90">{snippet}</pre>
+            <p className="mt-3 text-xs text-muted-foreground">
+              Place this before <code className="font-mono">&lt;/body&gt;</code> on every page. The beacon ships one event after ~3s of observation and a final one on page unload. Hits on <code className="font-mono">/trap/{hp.slug}</code> URLs are flagged as honeypot hits automatically.
+            </p>
+          </Card>
+
+          <Card className="mt-4 bg-surface/40 border-border p-6">
+            <div className="text-xs uppercase tracking-wider text-muted-foreground">What gets shipped</div>
+            <ul className="mt-3 grid grid-cols-2 gap-x-6 gap-y-1.5 text-sm text-foreground/90">
+              <li>· UA + headless tells</li>
+              <li>· Canvas + WebGL fingerprint</li>
+              <li>· Mouse entropy, scroll, click</li>
+              <li>· Screen, DPR, timezone</li>
+              <li>· Dwell time, referrer, path</li>
+              <li>· navigator.webdriver</li>
+            </ul>
+            <p className="mt-3 text-xs text-muted-foreground">No PII. No third-party calls. The beacon posts directly to your Chaff tenant.</p>
+          </Card>
+        </>
       )}
     </div>
   );
