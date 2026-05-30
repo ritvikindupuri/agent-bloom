@@ -1,8 +1,7 @@
 # Chaff: Technical Documentation
 
-## Executive Summary
-
-Chaff is an advanced, automated security analyst and bot-detection system designed to identify, analyze, and mitigate malicious traffic on web applications. Unlike traditional Web Application Firewalls (WAFs) that rely entirely on static rules, Chaff reads your actual website surface, generates tailored detection rules using an AI agent, and continuously monitors Elasticsearch logs to spot coordinated bot campaigns and threats. By combining site reconnaissance (via Firecrawl), continuous monitoring, real-time AI reasoning, and IP enrichment, Chaff provides actionable intelligence with near-zero false positives for verified bots.
+**Date:** May 30, 2026
+**By:** Ritvik Indupuri
 
 ## Table of Contents
 
@@ -20,6 +19,10 @@ Chaff is an advanced, automated security analyst and bot-detection system design
    - [MCP (Model Context Protocol) Integration](#mcp-model-context-protocol-integration)
    - [IP Enrichment & Heuristics](#ip-enrichment--heuristics)
 4. [Conclusion](#conclusion)
+
+## Executive Summary
+
+Chaff is an advanced, automated security analyst and bot-detection system designed to identify, analyze, and mitigate malicious traffic on web applications. Unlike traditional Web Application Firewalls (WAFs) that rely entirely on static rules, Chaff reads your actual website surface, generates tailored detection rules using an AI agent, and continuously monitors Elasticsearch logs to spot coordinated bot campaigns and threats. By combining site reconnaissance (via Firecrawl), continuous monitoring, real-time AI reasoning, and IP enrichment, Chaff provides actionable intelligence with near-zero false positives for verified bots.
 
 ## System Architecture
 

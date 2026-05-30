@@ -1,4 +1,4 @@
-# Chaff
+# Chaff - An analyst that actually does the work.
 
 Chaff is an advanced, automated security analyst and bot-detection system. It reads your actual website surface, generates tailored detection rules using an AI agent, and continuously monitors Elasticsearch logs to spot coordinated bot campaigns and threats.
 
