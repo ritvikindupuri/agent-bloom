@@ -218,13 +218,17 @@ function DemoControls({ onChange }: { onChange: () => void }) {
   });
   return (
     <div className="flex gap-1">
-      <Button size="sm" variant="outline" onClick={() => load.mutate()} disabled={load.isPending}>
-        {load.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
-        Load demo
-      </Button>
-      <Button size="sm" variant="ghost" onClick={() => clear.mutate()} disabled={clear.isPending} title="Clear demo data">
-        <Trash2 className="h-3.5 w-3.5" />
-      </Button>
+      <Hint label="Seed your Elasticsearch index with ~500 realistic mixed bot + human events so you can explore the full UI without real traffic.">
+        <Button size="sm" variant="outline" onClick={() => load.mutate()} disabled={load.isPending}>
+          {load.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+          Load demo
+        </Button>
+      </Hint>
+      <Hint label="Delete all demo-generated events from your index (real logs are untouched).">
+        <Button size="sm" variant="ghost" onClick={() => clear.mutate()} disabled={clear.isPending}>
+          <Trash2 className="h-3.5 w-3.5" />
+        </Button>
+      </Hint>
     </div>
   );
 }
