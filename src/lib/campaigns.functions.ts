@@ -3,6 +3,8 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 import { searchEvents, chaffIndex } from "./es-chaff.server";
 import type { EsAuth } from "./es.server";
+import { generateBlockRule, TARGETS, type Target } from "./block-rules";
+
 
 const AI_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
 
