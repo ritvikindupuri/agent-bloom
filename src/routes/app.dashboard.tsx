@@ -1,12 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getMetrics, listConnections } from "@/lib/es.functions";
+import { loadDemo, clearDemo } from "@/lib/demo.functions";
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Bot, User, Globe, Activity, AlertTriangle, ChevronRight, Plug } from "lucide-react";
+import { Bot, User, Globe, Activity, AlertTriangle, ChevronRight, Plug, Sparkles, Trash2, Loader2 } from "lucide-react";
 import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis, CartesianGrid } from "recharts";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/app/dashboard")({
   component: Dashboard,
@@ -52,13 +54,16 @@ function Dashboard() {
         title="Dashboard"
         subtitle="Live overview of your traffic, sifted in real time."
         right={
-          <div className="flex gap-1 rounded-md border border-border bg-surface/40 p-0.5">
-            {RANGES.map((r) => (
-              <button key={r.value} onClick={() => setRange(r.value)}
-                className={`px-2.5 py-1 rounded text-xs transition ${range === r.value ? "bg-accent text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
-                {r.label}
-              </button>
-            ))}
+          <div className="flex items-center gap-2">
+            <DemoControls onChange={() => m.refetch()} />
+            <div className="flex gap-1 rounded-md border border-border bg-surface/40 p-0.5">
+              {RANGES.map((r) => (
+                <button key={r.value} onClick={() => setRange(r.value)}
+                  className={`px-2.5 py-1 rounded text-xs transition ${range === r.value ? "bg-accent text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
+                  {r.label}
+                </button>
+              ))}
+            </div>
           </div>
         }
       />
