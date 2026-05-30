@@ -152,9 +152,11 @@ function AgentPage() {
               rows={1}
               className="resize-none border-0 bg-transparent shadow-none focus-visible:ring-0 min-h-[40px] max-h-40"
             />
-            <Button type="submit" size="icon" disabled={!input.trim() || send.isPending}>
-              <Send className="h-4 w-4" />
-            </Button>
+            <Hint label="Send to the agent (Enter to send, Shift+Enter for newline).">
+              <Button type="submit" size="icon" disabled={!input.trim() || send.isPending}>
+                <Send className="h-4 w-4" />
+              </Button>
+            </Hint>
           </form>
         </div>
       </div>
