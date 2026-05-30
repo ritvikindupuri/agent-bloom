@@ -58,7 +58,8 @@ const STACKS: Record<StackId, Omit<StackInfo, "id">> = {
   },
   "react-spa": {
     label: "React SPA",
-    installLocation: "Paste into index.html before </body>.",
+    installLocation:
+      "Paste into public/index.html (or root index.html for Vite) just before </body>. Do NOT paste into a .jsx/.tsx component — React ignores inline <script> tags rendered via JSX.",
     baitPaths: [
       "/.env",
       "/config.js.bak",
