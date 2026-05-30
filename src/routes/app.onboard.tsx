@@ -57,6 +57,8 @@ const classBadge: Record<Offender["classification"], { cls: string; icon: any; l
 function OnboardPage() {
   const fnActivate = useServerFn(activate);
   const fnGet = useServerFn(getActivation);
+  const fnClear = useServerFn(clearSession);
+  const qc = useQueryClient();
 
   const existing = useQuery({ queryKey: ["activation"], queryFn: () => fnGet() });
 
@@ -65,6 +67,7 @@ function OnboardPage() {
   const [apiKey, setApiKey] = useState("");
   const [indexPattern, setIndexPattern] = useState("logs-*");
   const [showKey, setShowKey] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   const mut = useMutation({
     mutationFn: () => fnActivate({ data: { siteUrl, esEndpoint: endpoint, esApiKey: apiKey, indexPattern } }),
@@ -72,6 +75,7 @@ function OnboardPage() {
       if (r.ok) {
         toast.success("Chaff is live", { description: `${r.detectors.length} custom detectors deployed.` });
         existing.refetch();
+        qc.invalidateQueries({ queryKey: ["sessions"] });
       } else {
         toast.error(r.error);
       }
@@ -79,28 +83,69 @@ function OnboardPage() {
     onError: (e: any) => toast.error(e?.message ?? "Activation failed"),
   });
 
+  const clearMut = useMutation({
+    mutationFn: () => fnClear(),
+    onSuccess: () => {
+      toast.success("Session cleared", { description: "Saved to history. You can restore it anytime." });
+      setSiteUrl(""); setEndpoint(""); setApiKey(""); setIndexPattern("logs-*");
+      mut.reset();
+      existing.refetch();
+      qc.invalidateQueries({ queryKey: ["sessions"] });
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Failed to clear"),
+  });
+
   const result = mut.data && mut.data.ok ? mut.data : null;
   const failedSteps = mut.data && !mut.data.ok ? mut.data : null;
   const live = existing.data?.connection;
+  const hasSession = !!live || !!result || !!siteUrl || !!endpoint || !!apiKey;
 
   const canActivate = siteUrl.trim() && endpoint.trim() && apiKey.trim() && !mut.isPending;
 
   return (
     <div className="p-10 max-w-5xl mx-auto space-y-8">
-      <div className="flex items-end justify-between">
+      <div className="flex items-end justify-between gap-4 flex-wrap">
         <div>
           <h1 className="font-display text-4xl tracking-tight">Activate Chaff</h1>
           <p className="mt-1 text-sm text-muted-foreground max-w-2xl">
             Two inputs. Our agent scans your site, learns your log schema, and writes a custom bot-detection pack tailored to your exact routes.
           </p>
         </div>
-        {live && (
-          <Badge variant="secondary" className="gap-1.5 px-3 py-1">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            Live: {live.label}
-          </Badge>
-        )}
+        <div className="flex items-center gap-2">
+          {live && (
+            <Badge variant="secondary" className="gap-1.5 px-3 py-1">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              Live: {live.label}
+            </Badge>
+          )}
+          <Button variant="outline" size="sm" onClick={() => setHistoryOpen(true)} className="gap-1.5">
+            <History className="h-3.5 w-3.5" /> History
+          </Button>
+          {hasSession && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => clearMut.mutate()}
+              disabled={clearMut.isPending}
+              className="gap-1.5"
+            >
+              {clearMut.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+              Clear session
+            </Button>
+          )}
+        </div>
       </div>
+
+      {historyOpen && (
+        <HistoryPanel
+          onClose={() => setHistoryOpen(false)}
+          onRestored={() => {
+            mut.reset();
+            existing.refetch();
+            setHistoryOpen(false);
+          }}
+        />
+      )}
 
       {/* The 2-input form */}
       <Card className="bg-surface/40 border-border p-6">
