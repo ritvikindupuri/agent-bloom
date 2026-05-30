@@ -96,8 +96,10 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   return (
     <QueryClientProvider client={queryClient}>
-      <Outlet />
-      <Toaster position="top-right" theme="dark" />
+      <TooltipProvider delayDuration={200} skipDelayDuration={300}>
+        <Outlet />
+        <Toaster position="top-right" theme="dark" />
+      </TooltipProvider>
     </QueryClientProvider>
   );
 }
