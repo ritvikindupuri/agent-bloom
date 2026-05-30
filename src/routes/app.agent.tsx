@@ -88,9 +88,11 @@ function AgentPage() {
     <div className="flex h-screen">
       <aside className="w-64 shrink-0 border-r border-border/60 bg-surface/30 flex flex-col">
         <div className="p-3 border-b border-border/60">
-          <Button variant="outline" size="sm" className="w-full justify-start bg-background/40" onClick={() => setActiveId(null)}>
-            <Plus className="h-4 w-4 mr-2" /> New investigation
-          </Button>
+          <Hint label="Start a fresh investigation. Each one has its own conversation thread and tool history." side="right">
+            <Button variant="outline" size="sm" className="w-full justify-start bg-background/40" onClick={() => setActiveId(null)}>
+              <Plus className="h-4 w-4 mr-2" /> New investigation
+            </Button>
+          </Hint>
         </div>
         <div className="flex-1 overflow-auto p-2">
           {(convs.data?.conversations ?? []).map((c) => (
