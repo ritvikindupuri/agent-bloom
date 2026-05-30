@@ -227,10 +227,12 @@ function OnboardPage() {
           <p className="text-xs text-muted-foreground">
             No agent, no snippet, no install. We never write to your cluster.
           </p>
-          <Button onClick={() => mut.mutate()} disabled={!canActivate} size="lg" className="gap-2">
-            {mut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
-            {mut.isPending ? "Activating…" : "Activate Chaff"}
-          </Button>
+          <Hint label="Recon your site, sample your index, then generate + test a custom detector pack against the last 24h of logs.">
+            <Button onClick={() => mut.mutate()} disabled={!canActivate} size="lg" className="gap-2">
+              {mut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
+              {mut.isPending ? "Activating…" : "Activate Chaff"}
+            </Button>
+          </Hint>
         </div>
       </Card>
 
