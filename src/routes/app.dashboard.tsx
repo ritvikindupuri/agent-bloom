@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Bot, User, Globe, Activity, AlertTriangle, ChevronRight, Plug, Sparkles, Trash2, Loader2 } from "lucide-react";
 import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis, CartesianGrid } from "recharts";
 import { toast } from "sonner";
+import { Hint } from "@/components/Hint";
 
 export const Route = createFileRoute("/app/dashboard")({
   component: Dashboard,
