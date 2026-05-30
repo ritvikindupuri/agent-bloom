@@ -5,6 +5,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 import { scanUrl } from "./onboard.server";
 import { esPing, esRequest, esSearch, type EsAuth } from "./es.server";
+import { enrichIps, type IpEnrichment } from "./ip-intel.server";
 
 const AI_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
 const MODEL = "google/gemini-2.5-flash";
@@ -18,6 +19,8 @@ type DetectedSchema = {
   notes?: string;
 };
 
+type Offender = IpEnrichment & { eventCount: number; sampleUserAgent: string | null };
+
 type Detector = {
   id: string;
   name: string;
@@ -25,7 +28,9 @@ type Detector = {
   severity: "low" | "medium" | "high" | "critical";
   target_path?: string;
   es_query: any; // ES bool query body
-  match_count?: number; // populated after dry run
+  match_count?: number;             // total raw matches
+  match_count_clean?: number;       // excluding verified bots
+  offenders?: Offender[];           // top enriched IPs
 };
 
 async function callAI(messages: any[], responseSchema?: any): Promise<any> {
