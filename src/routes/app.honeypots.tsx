@@ -62,8 +62,12 @@ function HoneypotsPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-muted-foreground">{h.hit_count} hits</span>
-                  <a href={trapUrl} target="_blank" rel="noreferrer" className="rounded-md border border-border px-2 py-1 text-xs hover:bg-accent inline-flex items-center gap-1"><ExternalLink className="h-3 w-3" />Open</a>
-                  <button onClick={() => mDelete.mutate(h.id)} className="rounded-md border border-border px-2 py-1 text-xs hover:bg-destructive/10 hover:text-destructive"><Trash2 className="h-3 w-3" /></button>
+                  <Hint label="Open the trap URL in a new tab to preview what bots see.">
+                    <a href={trapUrl} target="_blank" rel="noreferrer" className="rounded-md border border-border px-2 py-1 text-xs hover:bg-accent inline-flex items-center gap-1"><ExternalLink className="h-3 w-3" />Open</a>
+                  </Hint>
+                  <Hint label="Delete this honeypot and stop recording hits to it.">
+                    <button onClick={() => mDelete.mutate(h.id)} className="rounded-md border border-border px-2 py-1 text-xs hover:bg-destructive/10 hover:text-destructive"><Trash2 className="h-3 w-3" /></button>
+                  </Hint>
                 </div>
               </div>
               <div className="mt-3 grid gap-2 md:grid-cols-2">
