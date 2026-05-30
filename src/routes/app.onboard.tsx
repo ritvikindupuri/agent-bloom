@@ -1,8 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
-import { activate, getActivation, getBlocklist } from "@/lib/activate.functions";
+import { activate, getActivation, getBlocklist, listSessions, clearSession, restoreSession } from "@/lib/activate.functions";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -11,7 +11,7 @@ import { toast } from "sonner";
 import {
   Globe, Database, Sparkles, Loader2, CheckCircle2, XCircle,
   ShieldAlert, Zap, ArrowRight, Eye, EyeOff, Crosshair, Download,
-  ShieldCheck, AlertTriangle, HelpCircle,
+  ShieldCheck, AlertTriangle, HelpCircle, History, Trash2, RotateCcw,
 } from "lucide-react";
 
 export const Route = createFileRoute("/app/onboard")({
