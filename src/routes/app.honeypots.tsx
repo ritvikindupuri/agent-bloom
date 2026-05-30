@@ -44,7 +44,9 @@ function HoneypotsPage() {
 
       <div className="mt-6 flex gap-2">
         <Input placeholder="Label (e.g. fake-pricing)" value={label} onChange={(e) => setLabel(e.target.value)} className="max-w-xs" />
-        <Button onClick={() => mCreate.mutate()} disabled={mCreate.isPending}><Plus className="h-4 w-4 mr-1" />New trap</Button>
+        <Hint label="Create a trap URL. Share it where only crawlers will find it (sitemap, robots.txt, hidden links).">
+          <Button onClick={() => mCreate.mutate()} disabled={mCreate.isPending}><Plus className="h-4 w-4 mr-1" />New trap</Button>
+        </Hint>
       </div>
 
       <div className="mt-8 rounded-lg border border-border bg-surface/40 divide-y divide-border">
