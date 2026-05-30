@@ -75,9 +75,11 @@ function AppLayout() {
         <AgentActivityFeed />
         <div className="p-3 border-t border-sidebar-border/70">
           <div className="px-3 py-2 text-xs text-muted-foreground truncate">{email}</div>
-          <button onClick={signOut} className="flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-foreground transition">
-            <LogOut className="h-4 w-4" /> Sign out
-          </button>
+          <Hint label="Sign out of your Chaff account" side="right">
+            <button onClick={signOut} className="flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-foreground transition">
+              <LogOut className="h-4 w-4" /> Sign out
+            </button>
+          </Hint>
         </div>
       </aside>
       <main className="flex-1 min-w-0">
