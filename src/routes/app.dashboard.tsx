@@ -196,3 +196,31 @@ function EmptyConn() {
     </div>
   );
 }
+
+function DemoControls({ onChange }: { onChange: () => void }) {
+  const qc = useQueryClient();
+  const fnLoad = useServerFn(loadDemo);
+  const fnClear = useServerFn(clearDemo);
+  const load = useMutation({
+    mutationFn: () => fnLoad(),
+    onSuccess: (res: any) => {
+      if (res?.ok) { toast.success(`Loaded ${res.written} demo events`); qc.invalidateQueries(); onChange(); }
+      else toast.error(res?.error ?? "Failed to load demo");
+    },
+  });
+  const clear = useMutation({
+    mutationFn: () => fnClear(),
+    onSuccess: () => { toast.success("Demo data cleared"); qc.invalidateQueries(); onChange(); },
+  });
+  return (
+    <div className="flex gap-1">
+      <Button size="sm" variant="outline" onClick={() => load.mutate()} disabled={load.isPending}>
+        {load.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+        Load demo
+      </Button>
+      <Button size="sm" variant="ghost" onClick={() => clear.mutate()} disabled={clear.isPending} title="Clear demo data">
+        <Trash2 className="h-3.5 w-3.5" />
+      </Button>
+    </div>
+  );
+}
