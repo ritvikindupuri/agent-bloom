@@ -114,25 +114,31 @@ function OnboardPage() {
         </div>
         <div className="flex items-center gap-2">
           {live && (
-            <Badge variant="secondary" className="gap-1.5 px-3 py-1">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              Live: {live.label}
-            </Badge>
+            <Hint label="Your current active session. Detectors are running against this site + cluster.">
+              <Badge variant="secondary" className="gap-1.5 px-3 py-1 cursor-default">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                Live: {live.label}
+              </Badge>
+            </Hint>
           )}
-          <Button variant="outline" size="sm" onClick={() => setHistoryOpen(true)} className="gap-1.5">
-            <History className="h-3.5 w-3.5" /> History
-          </Button>
-          {hasSession && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => clearMut.mutate()}
-              disabled={clearMut.isPending}
-              className="gap-1.5"
-            >
-              {clearMut.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
-              Clear session
+          <Hint label="Browse and restore any past session. Each one keeps its own site, ES connection, and detector pack.">
+            <Button variant="outline" size="sm" onClick={() => setHistoryOpen(true)} className="gap-1.5">
+              <History className="h-3.5 w-3.5" /> History
             </Button>
+          </Hint>
+          {hasSession && (
+            <Hint label="Archive this session and reset the form. Nothing is deleted — restore it anytime from History.">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => clearMut.mutate()}
+                disabled={clearMut.isPending}
+                className="gap-1.5"
+              >
+                {clearMut.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                Clear session
+              </Button>
+            </Hint>
           )}
         </div>
       </div>
