@@ -454,7 +454,7 @@ function defaultPendingSteps() {
     { name: "Scan site with Firecrawl", ok: false },
     { name: "Auto-detect log schema", ok: false },
     { name: "Generate site-specific detectors", ok: false },
-    { name: "Backtest on last 24h", ok: false },
+    { name: "Enrich offenders + verify bots", ok: false },
   ];
 }
 
