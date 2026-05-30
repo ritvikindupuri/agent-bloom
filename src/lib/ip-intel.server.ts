@@ -9,6 +9,10 @@ export type IpEnrichment = {
   verifiedBot: VerifiedBotKind;
   isDatacenter: boolean;
   isTor: boolean;
+  abuseScore: number | null;          // 0-100 from AbuseIPDB, null if not available
+  abuseReports: number | null;        // total abuse reports last 90d
+  usageType: string | null;           // "Data Center/Web Hosting/Transit", "Residential", etc.
+  countryCode: string | null;
   confidence: number;       // 0-100 — likelihood this IP is a malicious bot
   classification: "verified_bot" | "malicious" | "suspicious" | "benign" | "unknown";
   reasons: string[];
@@ -143,6 +147,39 @@ export function scoreUserAgent(ua: string | null | undefined): { score: number; 
   return { score: 0 };
 }
 
+type AbuseInfo = {
+  abuseScore: number | null;
+  abuseReports: number | null;
+  usageType: string | null;
+  countryCode: string | null;
+};
+
+async function abuseIpdbLookup(ip: string): Promise<AbuseInfo> {
+  const key = process.env.ABUSEIPDB_API_KEY;
+  const empty: AbuseInfo = { abuseScore: null, abuseReports: null, usageType: null, countryCode: null };
+  if (!key) return empty;
+  try {
+    const res = await fetch(
+      `https://api.abuseipdb.com/api/v2/check?ipAddress=${encodeURIComponent(ip)}&maxAgeInDays=90`,
+      {
+        headers: { Key: key, Accept: "application/json" },
+        signal: AbortSignal.timeout(4000),
+      },
+    );
+    if (!res.ok) return empty;
+    const j: any = await res.json();
+    const d = j?.data ?? {};
+    return {
+      abuseScore: typeof d.abuseConfidenceScore === "number" ? d.abuseConfidenceScore : null,
+      abuseReports: typeof d.totalReports === "number" ? d.totalReports : null,
+      usageType: d.usageType ?? null,
+      countryCode: d.countryCode ?? null,
+    };
+  } catch {
+    return empty;
+  }
+}
+
 export async function enrichIp(
   ip: string,
   context: { eventCount?: number; sampleUserAgent?: string | null } = {},
@@ -156,17 +193,35 @@ export async function enrichIp(
     else if (context.eventCount > 10) confidence += 5;
   }
 
-  const rdns = await reverseDns(ip);
+  // Parallel: rDNS + AbuseIPDB reputation
+  const [rdns, abuse] = await Promise.all([reverseDns(ip), abuseIpdbLookup(ip)]);
+
+  // Apply reputation signals (works even when rDNS fails)
+  if (abuse.abuseScore !== null) {
+    if (abuse.abuseScore >= 75) { reasons.push(`AbuseIPDB score ${abuse.abuseScore}/100 (${abuse.abuseReports ?? 0} reports)`); confidence += 35; }
+    else if (abuse.abuseScore >= 25) { reasons.push(`AbuseIPDB score ${abuse.abuseScore}/100`); confidence += 15; }
+    else if (abuse.abuseScore > 0) { reasons.push(`AbuseIPDB score ${abuse.abuseScore}/100`); confidence += 5; }
+  }
+  if (abuse.usageType) {
+    const ut = abuse.usageType.toLowerCase();
+    if (ut.includes("data center") || ut.includes("hosting")) { reasons.push(`usage type: ${abuse.usageType}`); confidence += 10; }
+    else if (ut.includes("residential") && abuse.abuseScore && abuse.abuseScore > 25) {
+      reasons.push(`residential proxy suspected (${abuse.usageType}, abuse ${abuse.abuseScore})`); confidence += 20;
+    }
+  }
+
   if (!rdns) {
     reasons.push("no reverse-DNS record (often residential proxy or fresh allocation)");
     confidence += 10;
     const uaScore = scoreUserAgent(context.sampleUserAgent);
     if (uaScore.reason) reasons.push(uaScore.reason);
     confidence += uaScore.score;
+    confidence = Math.max(0, Math.min(100, confidence));
     return {
       ip, rdns: null, verifiedBot: null, isDatacenter: false, isTor: false,
-      confidence: Math.min(100, confidence),
-      classification: confidence >= 60 ? "malicious" : confidence >= 35 ? "suspicious" : "unknown",
+      ...abuse,
+      confidence,
+      classification: confidence >= 70 ? "malicious" : confidence >= 40 ? "suspicious" : confidence >= 15 ? "unknown" : "benign",
       reasons,
     };
   }
@@ -179,29 +234,21 @@ export async function enrichIp(
       return {
         ip, rdns, verifiedBot: claimedBot,
         isDatacenter: false, isTor: false,
+        ...abuse,
         confidence: 0,
         classification: "verified_bot",
         reasons: [`forward-confirmed ${claimedBot} (${rdns})`],
       };
     }
-    // Spoofed PTR — VERY suspicious.
     reasons.push(`spoofed PTR claiming ${claimedBot} (${rdns}) — forward lookup did NOT return ${ip}`);
     confidence += 40;
   }
 
   const dc = isDatacenter(rdns);
   const tor = isTor(rdns);
-  if (dc) {
-    reasons.push(`datacenter origin (${rdns})`);
-    confidence += 20;
-  }
-  if (tor) {
-    reasons.push(`Tor exit node (${rdns})`);
-    confidence += 35;
-  }
-  if (!dc && !tor && !claimedBot) {
-    reasons.push(`residential/ISP origin (${rdns})`);
-  }
+  if (dc) { reasons.push(`datacenter origin (${rdns})`); confidence += 20; }
+  if (tor) { reasons.push(`Tor exit node (${rdns})`); confidence += 35; }
+  if (!dc && !tor && !claimedBot) reasons.push(`residential/ISP origin (${rdns})`);
 
   const uaScore = scoreUserAgent(context.sampleUserAgent);
   if (uaScore.reason) reasons.push(uaScore.reason);
@@ -213,7 +260,7 @@ export async function enrichIp(
     confidence >= 40 ? "suspicious" :
     confidence >= 15 ? "unknown" : "benign";
 
-  return { ip, rdns, verifiedBot: null, isDatacenter: dc, isTor: tor, confidence, classification, reasons };
+  return { ip, rdns, verifiedBot: null, isDatacenter: dc, isTor: tor, ...abuse, confidence, classification, reasons };
 }
 
 export async function enrichIps(

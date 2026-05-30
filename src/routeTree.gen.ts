@@ -25,6 +25,7 @@ import { Route as AppAgentRouteImport } from './routes/app.agent'
 import { Route as ApiMcpRouteImport } from './routes/api/mcp'
 import { Route as AppCampaignsIdRouteImport } from './routes/app.campaigns.$id'
 import { Route as ApiPublicBeaconRouteImport } from './routes/api/public/beacon'
+import { Route as ApiPublicHooksRescanRouteImport } from './routes/api/public/hooks/rescan'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -106,6 +107,11 @@ const ApiPublicBeaconRoute = ApiPublicBeaconRouteImport.update({
   path: '/api/public/beacon',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicHooksRescanRoute = ApiPublicHooksRescanRouteImport.update({
+  id: '/api/public/hooks/rescan',
+  path: '/api/public/hooks/rescan',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -124,6 +130,7 @@ export interface FileRoutesByFullPath {
   '/trap/$slug': typeof TrapSlugRoute
   '/api/public/beacon': typeof ApiPublicBeaconRoute
   '/app/campaigns/$id': typeof AppCampaignsIdRoute
+  '/api/public/hooks/rescan': typeof ApiPublicHooksRescanRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -142,6 +149,7 @@ export interface FileRoutesByTo {
   '/trap/$slug': typeof TrapSlugRoute
   '/api/public/beacon': typeof ApiPublicBeaconRoute
   '/app/campaigns/$id': typeof AppCampaignsIdRoute
+  '/api/public/hooks/rescan': typeof ApiPublicHooksRescanRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -161,6 +169,7 @@ export interface FileRoutesById {
   '/trap/$slug': typeof TrapSlugRoute
   '/api/public/beacon': typeof ApiPublicBeaconRoute
   '/app/campaigns/$id': typeof AppCampaignsIdRoute
+  '/api/public/hooks/rescan': typeof ApiPublicHooksRescanRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -181,6 +190,7 @@ export interface FileRouteTypes {
     | '/trap/$slug'
     | '/api/public/beacon'
     | '/app/campaigns/$id'
+    | '/api/public/hooks/rescan'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -199,6 +209,7 @@ export interface FileRouteTypes {
     | '/trap/$slug'
     | '/api/public/beacon'
     | '/app/campaigns/$id'
+    | '/api/public/hooks/rescan'
   id:
     | '__root__'
     | '/'
@@ -217,6 +228,7 @@ export interface FileRouteTypes {
     | '/trap/$slug'
     | '/api/public/beacon'
     | '/app/campaigns/$id'
+    | '/api/public/hooks/rescan'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -226,6 +238,7 @@ export interface RootRouteChildren {
   ApiMcpRoute: typeof ApiMcpRoute
   TrapSlugRoute: typeof TrapSlugRoute
   ApiPublicBeaconRoute: typeof ApiPublicBeaconRoute
+  ApiPublicHooksRescanRoute: typeof ApiPublicHooksRescanRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -342,6 +355,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicBeaconRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/rescan': {
+      id: '/api/public/hooks/rescan'
+      path: '/api/public/hooks/rescan'
+      fullPath: '/api/public/hooks/rescan'
+      preLoaderRoute: typeof ApiPublicHooksRescanRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -390,6 +410,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiMcpRoute: ApiMcpRoute,
   TrapSlugRoute: TrapSlugRoute,
   ApiPublicBeaconRoute: ApiPublicBeaconRoute,
+  ApiPublicHooksRescanRoute: ApiPublicHooksRescanRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
