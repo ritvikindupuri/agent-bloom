@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Logo } from "@/components/Logo";
-import { ArrowRight, Bot, Database, Sparkles, Shield, Activity, Globe } from "lucide-react";
+import { ArrowRight, Bot, Database, Sparkles, Shield, Activity, Globe, RefreshCw, ShieldCheck, Download } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   component: Landing,
@@ -33,7 +33,7 @@ function Landing() {
               <span className="italic text-muted-foreground">chaff behind.</span>
             </h1>
             <p className="mx-auto mt-6 max-w-xl text-base text-muted-foreground md:text-lg">
-              Paste your URL and connect Elasticsearch. Our agent reads your site, writes a bot-detection pack tailored to your exact routes, and starts hunting. No snippet. No install.
+              Paste your URL and connect Elasticsearch. Our agent reads your site, writes a bot-detection pack tailored to your exact routes, and hunts continuously — enriched with reverse-DNS, forward-confirmed verified bots, and AbuseIPDB reputation. No snippet. No install.
             </p>
             <div className="mt-10 flex items-center justify-center gap-3">
               <Link to="/login" className="group inline-flex items-center gap-2 rounded-md bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90 transition">
@@ -98,11 +98,35 @@ function Landing() {
           </div>
         </section>
 
+        <section className="border-t border-border/60">
+          <div className="mx-auto max-w-6xl px-6 py-20">
+            <div className="text-center">
+              <div className="inline-flex items-center gap-2 text-xs uppercase tracking-widest text-muted-foreground">
+                <Shield className="h-3 w-3" /> Why teams pick Chaff
+              </div>
+              <h2 className="mt-3 font-display text-4xl tracking-tight md:text-5xl">Built to deploy, not just to demo.</h2>
+            </div>
+            <div className="mt-12 grid gap-6 md:grid-cols-3">
+              {[
+                { icon: RefreshCw, title: "Continuous monitoring", body: "An hourly worker re-runs your detector pack against the last 24h, refreshes offender intel, and opens new findings — no dashboard-watching required." },
+                { icon: ShieldCheck, title: "Zero false-positive bots", body: "Forward-confirmed reverse-DNS allowlists Googlebot, Bingbot, Applebot and friends. AbuseIPDB scores every offender so you never page on a legit crawler." },
+                { icon: Download, title: "Deployable mitigations", body: "Export high-confidence offenders as nginx, Cloudflare WAF, or iptables rules. From detection to deny-list in two clicks." },
+              ].map((f) => (
+                <div key={f.title} className="rounded-xl border border-border bg-surface/40 p-6">
+                  <f.icon className="h-5 w-5 text-primary" />
+                  <h3 className="mt-4 font-display text-lg">{f.title}</h3>
+                  <p className="mt-2 text-sm text-muted-foreground">{f.body}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
         <section className="border-t border-border/60 bg-surface/30">
           <div className="mx-auto max-w-4xl px-6 py-24 text-center">
             <h2 className="font-display text-4xl tracking-tight md:text-5xl">Two inputs. No install. Built for security teams.</h2>
             <p className="mx-auto mt-3 max-w-md text-muted-foreground">
-              Every other tool ships generic bot rules. Chaff reads your site first, then writes detection rules that target your actual attack surface.
+              Every other tool ships generic bot rules. Chaff reads your site first, then writes detection rules that target your actual attack surface — and keeps them tuned.
             </p>
             <Link to="/login" className="mt-8 inline-flex items-center gap-2 rounded-md bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90 transition">
               Activate Chaff <ArrowRight className="h-4 w-4" />
