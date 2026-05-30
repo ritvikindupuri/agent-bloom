@@ -283,6 +283,9 @@ function OnboardPage() {
 
 function DetectorRow({ d }: { d: Detector }) {
   const [open, setOpen] = useState(false);
+  const clean = d.match_count_clean ?? d.match_count ?? 0;
+  const raw = d.match_count ?? 0;
+  const excluded = Math.max(0, raw - clean);
   return (
     <div className="rounded-md border border-border bg-background/40">
       <button
@@ -296,26 +299,59 @@ function DetectorRow({ d }: { d: Detector }) {
         </div>
         {typeof d.match_count === "number" && (
           <div className="shrink-0 text-right">
-            <div className={`font-mono text-sm ${d.match_count > 0 ? "text-amber-400" : "text-muted-foreground"}`}>
-              {d.match_count.toLocaleString()}
+            <div className={`font-mono text-sm ${clean > 0 ? "text-amber-400" : "text-muted-foreground"}`}>
+              {clean.toLocaleString()}
             </div>
-            <div className="text-[10px] text-muted-foreground uppercase tracking-wider">24h hits</div>
+            <div className="text-[10px] text-muted-foreground uppercase tracking-wider">
+              threats {excluded > 0 && <span className="text-emerald-400">· −{excluded.toLocaleString()} verified</span>}
+            </div>
           </div>
         )}
       </button>
       {open && (
-        <div className="border-t border-border px-4 py-3 bg-background/60">
+        <div className="border-t border-border px-4 py-3 bg-background/60 space-y-3">
           {d.target_path && (
-            <div className="mb-2 text-xs">
+            <div className="text-xs">
               <span className="text-muted-foreground">Target: </span>
               <code className="font-mono">{d.target_path}</code>
             </div>
           )}
-          <pre className="font-mono text-[11px] text-foreground/80 overflow-auto max-h-64">
-            {JSON.stringify(d.es_query, null, 2)}
-          </pre>
+          {d.offenders && d.offenders.length > 0 && (
+            <div>
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5">Top offenders (enriched)</div>
+              <div className="space-y-1">
+                {d.offenders.slice(0, 6).map((o) => <OffenderRow key={o.ip} o={o} />)}
+              </div>
+            </div>
+          )}
+          <details>
+            <summary className="text-[10px] uppercase tracking-wider text-muted-foreground cursor-pointer">Raw ES query</summary>
+            <pre className="mt-2 font-mono text-[11px] text-foreground/80 overflow-auto max-h-64">
+              {JSON.stringify(d.es_query, null, 2)}
+            </pre>
+          </details>
         </div>
       )}
+    </div>
+  );
+}
+
+function OffenderRow({ o }: { o: Offender }) {
+  const cls = classBadge[o.classification];
+  const Icon = cls.icon;
+  return (
+    <div className="flex items-center gap-2.5 text-xs bg-background/60 rounded px-2.5 py-1.5">
+      <Badge variant="outline" className={`shrink-0 gap-1 ${cls.cls}`}>
+        <Icon className="h-3 w-3" /> {cls.label}
+      </Badge>
+      <code className="font-mono text-foreground shrink-0">{o.ip}</code>
+      <span className="text-muted-foreground truncate flex-1" title={o.reasons.join(" · ")}>
+        {o.rdns ?? "no rDNS"} {o.reasons[0] && <span>· {o.reasons[0]}</span>}
+      </span>
+      <span className="font-mono text-muted-foreground shrink-0">{o.eventCount.toLocaleString()}×</span>
+      <span className={`font-mono shrink-0 ${o.confidence >= 70 ? "text-red-400" : o.confidence >= 40 ? "text-amber-400" : "text-muted-foreground"}`}>
+        {o.confidence}
+      </span>
     </div>
   );
 }
