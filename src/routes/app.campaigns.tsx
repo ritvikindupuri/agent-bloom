@@ -5,6 +5,7 @@ import { listCampaigns, clusterCampaigns } from "@/lib/campaigns.functions";
 import { Button } from "@/components/ui/button";
 import { Sparkles, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
+import { Hint } from "@/components/Hint";
 
 export const Route = createFileRoute("/app/campaigns")({ component: CampaignsPage });
 
@@ -28,9 +29,11 @@ function CampaignsPage() {
             Bot actors clustered by behavioral fingerprint across IPs. Each one is a coordinated effort.
           </p>
         </div>
-        <Button onClick={() => m.mutate()} disabled={m.isPending} variant="secondary">
-          <Sparkles className="h-4 w-4 mr-1" />{m.isPending ? "Clustering…" : "Re-cluster (24h)"}
-        </Button>
+        <Hint label="Re-run clustering against the last 24h of fingerprints. Coordinated bots get grouped into a single campaign by behavioral signature.">
+          <Button onClick={() => m.mutate()} disabled={m.isPending} variant="secondary">
+            <Sparkles className="h-4 w-4 mr-1" />{m.isPending ? "Clustering…" : "Re-cluster (24h)"}
+          </Button>
+        </Hint>
       </div>
 
       <div className="mt-6 rounded-lg border border-border bg-surface/40 divide-y divide-border">

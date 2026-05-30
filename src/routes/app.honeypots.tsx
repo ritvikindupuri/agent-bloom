@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import { Copy, Trash2, Plus, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
+import { Hint } from "@/components/Hint";
 
 export const Route = createFileRoute("/app/honeypots")({ component: HoneypotsPage });
 
@@ -43,7 +44,9 @@ function HoneypotsPage() {
 
       <div className="mt-6 flex gap-2">
         <Input placeholder="Label (e.g. fake-pricing)" value={label} onChange={(e) => setLabel(e.target.value)} className="max-w-xs" />
-        <Button onClick={() => mCreate.mutate()} disabled={mCreate.isPending}><Plus className="h-4 w-4 mr-1" />New trap</Button>
+        <Hint label="Create a trap URL. Share it where only crawlers will find it (sitemap, robots.txt, hidden links).">
+          <Button onClick={() => mCreate.mutate()} disabled={mCreate.isPending}><Plus className="h-4 w-4 mr-1" />New trap</Button>
+        </Hint>
       </div>
 
       <div className="mt-8 rounded-lg border border-border bg-surface/40 divide-y divide-border">
@@ -59,8 +62,12 @@ function HoneypotsPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-muted-foreground">{h.hit_count} hits</span>
-                  <a href={trapUrl} target="_blank" rel="noreferrer" className="rounded-md border border-border px-2 py-1 text-xs hover:bg-accent inline-flex items-center gap-1"><ExternalLink className="h-3 w-3" />Open</a>
-                  <button onClick={() => mDelete.mutate(h.id)} className="rounded-md border border-border px-2 py-1 text-xs hover:bg-destructive/10 hover:text-destructive"><Trash2 className="h-3 w-3" /></button>
+                  <Hint label="Open the trap URL in a new tab to preview what bots see.">
+                    <a href={trapUrl} target="_blank" rel="noreferrer" className="rounded-md border border-border px-2 py-1 text-xs hover:bg-accent inline-flex items-center gap-1"><ExternalLink className="h-3 w-3" />Open</a>
+                  </Hint>
+                  <Hint label="Delete this honeypot and stop recording hits to it.">
+                    <button onClick={() => mDelete.mutate(h.id)} className="rounded-md border border-border px-2 py-1 text-xs hover:bg-destructive/10 hover:text-destructive"><Trash2 className="h-3 w-3" /></button>
+                  </Hint>
                 </div>
               </div>
               <div className="mt-3 grid gap-2 md:grid-cols-2">
@@ -85,9 +92,11 @@ function CopyField({ label, value, multi }: { label: string; value: string; mult
       <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">{label}</div>
       <div className="flex gap-1.5">
         <code className={`flex-1 rounded-md border border-border bg-background px-2.5 py-1.5 text-xs font-mono ${multi ? "whitespace-pre" : "truncate"}`}>{value}</code>
-        <button onClick={() => { navigator.clipboard.writeText(value); toast.success("Copied"); }} className="rounded-md border border-border px-2 hover:bg-accent">
-          <Copy className="h-3.5 w-3.5" />
-        </button>
+        <Hint label="Copy to clipboard">
+          <button onClick={() => { navigator.clipboard.writeText(value); toast.success("Copied"); }} className="rounded-md border border-border px-2 hover:bg-accent">
+            <Copy className="h-3.5 w-3.5" />
+          </button>
+        </Hint>
       </div>
     </div>
   );

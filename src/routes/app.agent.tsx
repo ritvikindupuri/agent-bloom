@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import ReactMarkdown from "react-markdown";
 import { Bot, Send, Trash2, Plus, Sparkles, Wrench } from "lucide-react";
 import { toast } from "sonner";
+import { Hint } from "@/components/Hint";
 
 export const Route = createFileRoute("/app/agent")({
   component: AgentPage,
@@ -87,9 +88,11 @@ function AgentPage() {
     <div className="flex h-screen">
       <aside className="w-64 shrink-0 border-r border-border/60 bg-surface/30 flex flex-col">
         <div className="p-3 border-b border-border/60">
-          <Button variant="outline" size="sm" className="w-full justify-start bg-background/40" onClick={() => setActiveId(null)}>
-            <Plus className="h-4 w-4 mr-2" /> New investigation
-          </Button>
+          <Hint label="Start a fresh investigation. Each one has its own conversation thread and tool history." side="right">
+            <Button variant="outline" size="sm" className="w-full justify-start bg-background/40" onClick={() => setActiveId(null)}>
+              <Plus className="h-4 w-4 mr-2" /> New investigation
+            </Button>
+          </Hint>
         </div>
         <div className="flex-1 overflow-auto p-2">
           {(convs.data?.conversations ?? []).map((c) => (
@@ -100,13 +103,15 @@ function AgentPage() {
               >
                 {c.title}
               </button>
-              <button
-                onClick={() => del.mutate(c.id)}
-                className="absolute right-2 top-2 hidden group-hover:block text-muted-foreground hover:text-destructive"
-                aria-label="Delete"
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </button>
+              <Hint label="Delete this investigation and its messages." side="right">
+                <button
+                  onClick={() => del.mutate(c.id)}
+                  className="absolute right-2 top-2 hidden group-hover:block text-muted-foreground hover:text-destructive"
+                  aria-label="Delete"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              </Hint>
             </div>
           ))}
           {(convs.data?.conversations ?? []).length === 0 && (
@@ -147,9 +152,11 @@ function AgentPage() {
               rows={1}
               className="resize-none border-0 bg-transparent shadow-none focus-visible:ring-0 min-h-[40px] max-h-40"
             />
-            <Button type="submit" size="icon" disabled={!input.trim() || send.isPending}>
-              <Send className="h-4 w-4" />
-            </Button>
+            <Hint label="Send to the agent (Enter to send, Shift+Enter for newline).">
+              <Button type="submit" size="icon" disabled={!input.trim() || send.isPending}>
+                <Send className="h-4 w-4" />
+              </Button>
+            </Hint>
           </form>
         </div>
       </div>

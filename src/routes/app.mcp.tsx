@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import { Copy, Plus } from "lucide-react";
 import { toast } from "sonner";
+import { Hint } from "@/components/Hint";
 
 export const Route = createFileRoute("/app/mcp")({ component: McpPage });
 
@@ -43,7 +44,7 @@ function McpPage() {
         <div className="text-sm font-medium text-muted-foreground mb-2">Endpoint</div>
         <div className="flex gap-2">
           <code className="flex-1 rounded-md border border-border bg-background px-2.5 py-1.5 text-xs font-mono">{mcpUrl}</code>
-          <button onClick={() => { navigator.clipboard.writeText(mcpUrl); toast.success("Copied"); }} className="rounded-md border border-border px-2 hover:bg-accent"><Copy className="h-3.5 w-3.5" /></button>
+          <Hint label="Copy MCP endpoint URL"><button onClick={() => { navigator.clipboard.writeText(mcpUrl); toast.success("Copied"); }} className="rounded-md border border-border px-2 hover:bg-accent"><Copy className="h-3.5 w-3.5" /></button></Hint>
         </div>
         <div className="mt-4 text-xs text-muted-foreground">
           Tools exposed: <code className="text-foreground">is_known_bot</code> · <code className="text-foreground">list_recent_campaigns</code> · <code className="text-foreground">get_campaign</code> · <code className="text-foreground">lookup_fingerprint</code>
@@ -52,7 +53,9 @@ function McpPage() {
 
       <div className="mt-6 flex gap-2">
         <Input placeholder="Token label (e.g. claude-desktop)" value={label} onChange={(e) => setLabel(e.target.value)} className="max-w-xs" />
-        <Button onClick={() => m.mutate()} disabled={m.isPending}><Plus className="h-4 w-4 mr-1" />Issue token</Button>
+        <Hint label="Issue a new bearer token. Shown once — copy it immediately and paste into your MCP client config.">
+          <Button onClick={() => m.mutate()} disabled={m.isPending}><Plus className="h-4 w-4 mr-1" />Issue token</Button>
+        </Hint>
       </div>
 
       {fresh && (
@@ -72,7 +75,7 @@ function McpPage() {
               <div className="font-medium">{t.label}</div>
               <div className="text-xs text-muted-foreground mt-0.5">Created {new Date(t.created_at).toLocaleString()}{t.revoked_at ? ` · revoked ${new Date(t.revoked_at).toLocaleString()}` : ""}</div>
             </div>
-            {!t.revoked_at && <button onClick={() => r.mutate(t.id)} className="text-xs text-destructive hover:underline">Revoke</button>}
+            {!t.revoked_at && <Hint label="Permanently disable this token. MCP clients using it will lose access immediately."><button onClick={() => r.mutate(t.id)} className="text-xs text-destructive hover:underline">Revoke</button></Hint>}
           </div>
         )) : (
           <div className="p-8 text-center text-sm text-muted-foreground">No tokens yet.</div>

@@ -13,6 +13,7 @@ import {
   ShieldAlert, Zap, ArrowRight, Eye, EyeOff, Crosshair, Download,
   ShieldCheck, AlertTriangle, HelpCircle, History, Trash2, RotateCcw,
 } from "lucide-react";
+import { Hint } from "@/components/Hint";
 
 export const Route = createFileRoute("/app/onboard")({
   component: OnboardPage,
@@ -113,25 +114,31 @@ function OnboardPage() {
         </div>
         <div className="flex items-center gap-2">
           {live && (
-            <Badge variant="secondary" className="gap-1.5 px-3 py-1">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              Live: {live.label}
-            </Badge>
+            <Hint label="Your current active session. Detectors are running against this site + cluster.">
+              <Badge variant="secondary" className="gap-1.5 px-3 py-1 cursor-default">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                Live: {live.label}
+              </Badge>
+            </Hint>
           )}
-          <Button variant="outline" size="sm" onClick={() => setHistoryOpen(true)} className="gap-1.5">
-            <History className="h-3.5 w-3.5" /> History
-          </Button>
-          {hasSession && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => clearMut.mutate()}
-              disabled={clearMut.isPending}
-              className="gap-1.5"
-            >
-              {clearMut.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
-              Clear session
+          <Hint label="Browse and restore any past session. Each one keeps its own site, ES connection, and detector pack.">
+            <Button variant="outline" size="sm" onClick={() => setHistoryOpen(true)} className="gap-1.5">
+              <History className="h-3.5 w-3.5" /> History
             </Button>
+          </Hint>
+          {hasSession && (
+            <Hint label="Archive this session and reset the form. Nothing is deleted — restore it anytime from History.">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => clearMut.mutate()}
+                disabled={clearMut.isPending}
+                className="gap-1.5"
+              >
+                {clearMut.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                Clear session
+              </Button>
+            </Hint>
           )}
         </div>
       </div>
@@ -186,13 +193,15 @@ function OnboardPage() {
                 disabled={mut.isPending}
                 className="pr-9 font-mono"
               />
-              <button
-                type="button"
-                onClick={() => setShowKey((v) => !v)}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-              >
-                {showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </button>
+              <Hint label={showKey ? "Hide API key" : "Show API key"}>
+                <button
+                  type="button"
+                  onClick={() => setShowKey((v) => !v)}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  {showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </Hint>
             </div>
             <p className="mt-1.5 text-[11px] text-muted-foreground">
               Create one in Kibana → Stack Management → API Keys. Read-only is enough.
@@ -218,10 +227,12 @@ function OnboardPage() {
           <p className="text-xs text-muted-foreground">
             No agent, no snippet, no install. We never write to your cluster.
           </p>
-          <Button onClick={() => mut.mutate()} disabled={!canActivate} size="lg" className="gap-2">
-            {mut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
-            {mut.isPending ? "Activating…" : "Activate Chaff"}
-          </Button>
+          <Hint label="Recon your site, sample your index, then generate + test a custom detector pack against the last 24h of logs.">
+            <Button onClick={() => mut.mutate()} disabled={!canActivate} size="lg" className="gap-2">
+              {mut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
+              {mut.isPending ? "Activating…" : "Activate Chaff"}
+            </Button>
+          </Hint>
         </div>
       </Card>
 
@@ -341,9 +352,11 @@ function BlocklistExport() {
   const text = data ? data[tab] : "";
   return (
     <>
-      <Button variant="outline" size="sm" onClick={() => setOpen(true)} className="gap-2">
-        <Download className="h-3.5 w-3.5" /> Export blocklist
-      </Button>
+      <Hint label="Export the IPs flagged by your detectors as a drop-in blocklist for nginx, Cloudflare, or iptables.">
+        <Button variant="outline" size="sm" onClick={() => setOpen(true)} className="gap-2">
+          <Download className="h-3.5 w-3.5" /> Export blocklist
+        </Button>
+      </Hint>
       {open && (
         <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setOpen(false)}>
           <Card className="bg-surface border-border p-5 max-w-3xl w-full max-h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>

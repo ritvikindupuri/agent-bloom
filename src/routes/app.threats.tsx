@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ShieldAlert, ShieldOff, Eye, EyeOff, Lock, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { Hint } from "@/components/Hint";
 
 export const Route = createFileRoute("/app/threats")({
   component: ThreatsPage,
@@ -70,15 +71,21 @@ function ThreatsPage() {
                 </div>
               </div>
               <div className="flex flex-col gap-1.5 shrink-0">
-                <Button size="sm" variant="outline" onClick={() => upd.mutate({ id: t.id, status: "blocked" })}>
-                  <Lock className="h-3.5 w-3.5 mr-1" /> Mark blocked
-                </Button>
-                <Button size="sm" variant="ghost" onClick={() => upd.mutate({ id: t.id, status: "investigating" })}>
-                  <Eye className="h-3.5 w-3.5 mr-1" /> Investigating
-                </Button>
-                <Button size="sm" variant="ghost" onClick={() => upd.mutate({ id: t.id, status: "dismissed" })}>
-                  <EyeOff className="h-3.5 w-3.5 mr-1" /> Dismiss
-                </Button>
+                <Hint label="Mark as blocked. Use after you've added this IP/UA to your firewall or Cloudflare rules.">
+                  <Button size="sm" variant="outline" onClick={() => upd.mutate({ id: t.id, status: "blocked" })}>
+                    <Lock className="h-3.5 w-3.5 mr-1" /> Mark blocked
+                  </Button>
+                </Hint>
+                <Hint label="Pin this finding while you dig in. Keeps it visible at the top of your queue.">
+                  <Button size="sm" variant="ghost" onClick={() => upd.mutate({ id: t.id, status: "investigating" })}>
+                    <Eye className="h-3.5 w-3.5 mr-1" /> Investigating
+                  </Button>
+                </Hint>
+                <Hint label="Hide this finding. It stays in the database but is removed from the active queue.">
+                  <Button size="sm" variant="ghost" onClick={() => upd.mutate({ id: t.id, status: "dismissed" })}>
+                    <EyeOff className="h-3.5 w-3.5 mr-1" /> Dismiss
+                  </Button>
+                </Hint>
               </div>
             </div>
             {t.evidence && Object.keys(t.evidence).length > 0 && (

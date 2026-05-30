@@ -10,6 +10,7 @@ import {
 
 import appCss from "../styles.css?url";
 import { Toaster } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 function NotFoundComponent() {
   return (
@@ -95,8 +96,10 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   return (
     <QueryClientProvider client={queryClient}>
-      <Outlet />
-      <Toaster position="top-right" theme="dark" />
+      <TooltipProvider delayDuration={200} skipDelayDuration={300}>
+        <Outlet />
+        <Toaster position="top-right" theme="dark" />
+      </TooltipProvider>
     </QueryClientProvider>
   );
 }

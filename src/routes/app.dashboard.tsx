@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Bot, User, Globe, Activity, AlertTriangle, ChevronRight, Plug, Sparkles, Trash2, Loader2 } from "lucide-react";
 import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis, CartesianGrid } from "recharts";
 import { toast } from "sonner";
+import { Hint } from "@/components/Hint";
 
 export const Route = createFileRoute("/app/dashboard")({
   component: Dashboard,
@@ -58,10 +59,12 @@ function Dashboard() {
             <DemoControls onChange={() => m.refetch()} />
             <div className="flex gap-1 rounded-md border border-border bg-surface/40 p-0.5">
               {RANGES.map((r) => (
-                <button key={r.value} onClick={() => setRange(r.value)}
-                  className={`px-2.5 py-1 rounded text-xs transition ${range === r.value ? "bg-accent text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
-                  {r.label}
-                </button>
+                <Hint key={r.value} label={`Show traffic from the last ${r.label}`}>
+                  <button onClick={() => setRange(r.value)}
+                    className={`px-2.5 py-1 rounded text-xs transition ${range === r.value ? "bg-accent text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
+                    {r.label}
+                  </button>
+                </Hint>
               ))}
             </div>
           </div>
@@ -76,10 +79,10 @@ function Dashboard() {
       )}
 
       <div className="mt-6 grid gap-4 md:grid-cols-4">
-        <Stat label="Total requests" value={metrics?.totalRequests} icon={<Activity className="h-4 w-4" />} loading={m.isLoading} />
-        <Stat label="Bot traffic" value={metrics?.botRequests} icon={<Bot className="h-4 w-4" />} accent="bot" loading={m.isLoading} />
-        <Stat label="Human traffic" value={metrics?.humanRequests} icon={<User className="h-4 w-4" />} accent="human" loading={m.isLoading} />
-        <Stat label="Unique IPs" value={metrics?.uniqueIps} icon={<Globe className="h-4 w-4" />} loading={m.isLoading} />
+        <Stat label="Total requests" hint="Every request seen in your Elasticsearch index for the selected window." value={metrics?.totalRequests} icon={<Activity className="h-4 w-4" />} loading={m.isLoading} />
+        <Stat label="Bot traffic" hint="Requests Chaff classified as automated — known scrapers, scanners, datacenter IPs, UA mismatches." value={metrics?.botRequests} icon={<Bot className="h-4 w-4" />} accent="bot" loading={m.isLoading} />
+        <Stat label="Human traffic" hint="Requests that look like real users — residential IPs, plausible browser fingerprints." value={metrics?.humanRequests} icon={<User className="h-4 w-4" />} accent="human" loading={m.isLoading} />
+        <Stat label="Unique IPs" hint="Distinct source IPs in the selected window." value={metrics?.uniqueIps} icon={<Globe className="h-4 w-4" />} loading={m.isLoading} />
       </div>
 
       <Card className="mt-6 bg-surface/40 border-border">
@@ -145,9 +148,9 @@ function PageHeader({ title, subtitle, right }: { title: string; subtitle?: stri
   );
 }
 
-function Stat({ label, value, icon, accent, loading }: { label: string; value?: number; icon: React.ReactNode; accent?: "bot" | "human"; loading?: boolean }) {
+function Stat({ label, value, icon, accent, loading, hint }: { label: string; value?: number; icon: React.ReactNode; accent?: "bot" | "human"; loading?: boolean; hint?: string }) {
   const color = accent === "bot" ? "text-[color:var(--bot)]" : accent === "human" ? "text-[color:var(--human)]" : "text-foreground";
-  return (
+  const card = (
     <div className="rounded-lg border border-border bg-surface/40 p-4">
       <div className="flex items-center justify-between text-muted-foreground">
         <span className="text-xs uppercase tracking-wider">{label}</span>{icon}
@@ -157,6 +160,7 @@ function Stat({ label, value, icon, accent, loading }: { label: string; value?: 
       </div>
     </div>
   );
+  return hint ? <Hint label={hint}>{card}</Hint> : card;
 }
 
 function ListCard({ title, rows, mono }: { title: string; rows?: Array<{ key: string; count: number; tag?: "bot" | "human" }>; mono?: boolean }) {
@@ -214,13 +218,17 @@ function DemoControls({ onChange }: { onChange: () => void }) {
   });
   return (
     <div className="flex gap-1">
-      <Button size="sm" variant="outline" onClick={() => load.mutate()} disabled={load.isPending}>
-        {load.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
-        Load demo
-      </Button>
-      <Button size="sm" variant="ghost" onClick={() => clear.mutate()} disabled={clear.isPending} title="Clear demo data">
-        <Trash2 className="h-3.5 w-3.5" />
-      </Button>
+      <Hint label="Seed your Elasticsearch index with ~500 realistic mixed bot + human events so you can explore the full UI without real traffic.">
+        <Button size="sm" variant="outline" onClick={() => load.mutate()} disabled={load.isPending}>
+          {load.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+          Load demo
+        </Button>
+      </Hint>
+      <Hint label="Delete all demo-generated events from your index (real logs are untouched).">
+        <Button size="sm" variant="ghost" onClick={() => clear.mutate()} disabled={clear.isPending}>
+          <Trash2 className="h-3.5 w-3.5" />
+        </Button>
+      </Hint>
     </div>
   );
 }

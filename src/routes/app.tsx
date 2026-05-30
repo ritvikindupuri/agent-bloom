@@ -5,6 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { recentAgentActivity } from "@/lib/demo.functions";
 import { Logo } from "@/components/Logo";
+import { Hint } from "@/components/Hint";
 import { LayoutDashboard, Bot, ShieldAlert, LogOut, Crosshair, Network, Plug2, Zap, Activity, Wrench } from "lucide-react";
 
 export const Route = createFileRoute("/app")({
@@ -12,13 +13,13 @@ export const Route = createFileRoute("/app")({
 });
 
 const NAV = [
-  { to: "/app/onboard", label: "Activate", icon: Zap },
-  { to: "/app/dashboard", label: "Live", icon: LayoutDashboard },
-  { to: "/app/campaigns", label: "Campaigns", icon: Network },
-  { to: "/app/agent", label: "Agent", icon: Bot },
-  { to: "/app/threats", label: "Threats", icon: ShieldAlert },
-  { to: "/app/honeypots", label: "Honeypots", icon: Crosshair },
-  { to: "/app/mcp", label: "MCP", icon: Plug2 },
+  { to: "/app/onboard", label: "Activate", icon: Zap, hint: "Paste your site + Elasticsearch creds. The agent recons your routes and writes a custom detector pack." },
+  { to: "/app/dashboard", label: "Live", icon: LayoutDashboard, hint: "Real-time bot vs human traffic, top user-agents, IPs, paths, and status codes." },
+  { to: "/app/campaigns", label: "Campaigns", icon: Network, hint: "Bot actors clustered by behavioral fingerprint across IPs — coordinated activity surfaced as a single campaign." },
+  { to: "/app/agent", label: "Agent", icon: Bot, hint: "Chat with the Gemini-powered agent. It investigates your live logs and records findings as threats." },
+  { to: "/app/threats", label: "Threats", icon: ShieldAlert, hint: "Findings the agent recorded. Triage, mark blocked, or dismiss." },
+  { to: "/app/honeypots", label: "Honeypots", icon: Crosshair, hint: "Trap URLs that only bots will hit. Any visitor is, by definition, automated." },
+  { to: "/app/mcp", label: "MCP", icon: Plug2, hint: "Expose Chaff's bot intelligence to Claude, Cursor, ChatGPT via the MCP protocol." },
 ] as const;
 
 function AppLayout() {
@@ -58,24 +59,27 @@ function AppLayout() {
           {NAV.map((n) => {
             const active = pathname.startsWith(n.to);
             return (
-              <Link
-                key={n.to}
-                to={n.to}
-                className={`flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition ${
-                  active ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
-                }`}
-              >
-                <n.icon className="h-4 w-4" />{n.label}
-              </Link>
+              <Hint key={n.to} label={n.hint} side="right">
+                <Link
+                  to={n.to}
+                  className={`flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition ${
+                    active ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
+                  }`}
+                >
+                  <n.icon className="h-4 w-4" />{n.label}
+                </Link>
+              </Hint>
             );
           })}
         </nav>
         <AgentActivityFeed />
         <div className="p-3 border-t border-sidebar-border/70">
           <div className="px-3 py-2 text-xs text-muted-foreground truncate">{email}</div>
-          <button onClick={signOut} className="flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-foreground transition">
-            <LogOut className="h-4 w-4" /> Sign out
-          </button>
+          <Hint label="Sign out of your Chaff account" side="right">
+            <button onClick={signOut} className="flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-foreground transition">
+              <LogOut className="h-4 w-4" /> Sign out
+            </button>
+          </Hint>
         </div>
       </aside>
       <main className="flex-1 min-w-0">
