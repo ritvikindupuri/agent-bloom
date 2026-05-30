@@ -327,12 +327,18 @@ export const activate = createServerFn({ method: "POST" })
       return { ok: false as const, error: `Detector generation: ${e?.message ?? "failed"}`, steps, recon };
     }
 
-    // 5. Dry-run against the last 24h so we can show counts immediately
+    // 5. Dry-run + IP enrichment (rDNS, verified-bot allowlist, confidence scoring)
     let withCounts = detectors;
     if (sample) {
-      withCounts = await dryRunDetectors(auth, data.indexPattern, schema.timestamp_field, detectors);
-      const totalMatches = withCounts.reduce((s, d) => s + (d.match_count ?? 0), 0);
-      steps.push({ name: "Backtest on last 24h", ok: true, detail: `${totalMatches.toLocaleString()} suspicious events flagged` });
+      withCounts = await dryRunAndEnrichDetectors(auth, data.indexPattern, schema, detectors);
+      const totalClean = withCounts.reduce((s, d) => s + (d.match_count_clean ?? d.match_count ?? 0), 0);
+      const verifiedExcluded = withCounts.reduce((s, d) => s + ((d.match_count ?? 0) - (d.match_count_clean ?? d.match_count ?? 0)), 0);
+      const malicious = withCounts.reduce((s, d) => s + (d.offenders?.filter((o) => o.classification === "malicious").length ?? 0), 0);
+      steps.push({
+        name: "Enrich offenders + verify bots",
+        ok: true,
+        detail: `${totalClean.toLocaleString()} confirmed threats • ${verifiedExcluded.toLocaleString()} verified-bot events excluded • ${malicious} high-confidence malicious IPs`,
+      });
     }
 
     // 6. Save everything to es_connections (deactivate others first)
