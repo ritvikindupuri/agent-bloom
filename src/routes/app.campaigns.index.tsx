@@ -7,7 +7,7 @@ import { Sparkles, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { Hint } from "@/components/Hint";
 
-export const Route = createFileRoute("/app/campaigns")({ component: CampaignsPage });
+export const Route = createFileRoute("/app/campaigns/")({ component: CampaignsPage });
 
 function CampaignsPage() {
   const fnList = useServerFn(listCampaigns);
