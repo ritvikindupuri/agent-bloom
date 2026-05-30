@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
-import { activate, getActivation } from "@/lib/activate.functions";
+import { activate, getActivation, getBlocklist } from "@/lib/activate.functions";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -10,17 +10,33 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import {
   Globe, Database, Sparkles, Loader2, CheckCircle2, XCircle,
-  ShieldAlert, Zap, ArrowRight, Eye, EyeOff, Crosshair,
+  ShieldAlert, Zap, ArrowRight, Eye, EyeOff, Crosshair, Download,
+  ShieldCheck, AlertTriangle, HelpCircle,
 } from "lucide-react";
 
 export const Route = createFileRoute("/app/onboard")({
   component: OnboardPage,
 });
 
+type Offender = {
+  ip: string;
+  rdns: string | null;
+  verifiedBot: string | null;
+  isDatacenter: boolean;
+  isTor: boolean;
+  confidence: number;
+  classification: "verified_bot" | "malicious" | "suspicious" | "benign" | "unknown";
+  reasons: string[];
+  eventCount: number;
+  sampleUserAgent: string | null;
+};
+
 type Detector = {
   id: string; name: string; rationale: string;
   severity: "low" | "medium" | "high" | "critical";
-  target_path?: string; es_query: any; match_count?: number;
+  target_path?: string; es_query: any;
+  match_count?: number; match_count_clean?: number;
+  offenders?: Offender[];
 };
 
 const sevColor: Record<string, string> = {
@@ -28,6 +44,14 @@ const sevColor: Record<string, string> = {
   medium: "bg-amber-500/10 text-amber-400 border-amber-500/30",
   high: "bg-orange-500/10 text-orange-400 border-orange-500/30",
   critical: "bg-red-500/10 text-red-400 border-red-500/30",
+};
+
+const classBadge: Record<Offender["classification"], { cls: string; icon: any; label: string }> = {
+  verified_bot: { cls: "bg-emerald-500/10 text-emerald-400 border-emerald-500/30", icon: ShieldCheck, label: "Verified bot" },
+  malicious:    { cls: "bg-red-500/10 text-red-400 border-red-500/30", icon: AlertTriangle, label: "Malicious" },
+  suspicious:   { cls: "bg-orange-500/10 text-orange-400 border-orange-500/30", icon: ShieldAlert, label: "Suspicious" },
+  unknown:      { cls: "bg-muted text-muted-foreground border-border", icon: HelpCircle, label: "Unknown" },
+  benign:       { cls: "bg-blue-500/10 text-blue-400 border-blue-500/30", icon: ShieldCheck, label: "Benign" },
 };
 
 function OnboardPage() {
