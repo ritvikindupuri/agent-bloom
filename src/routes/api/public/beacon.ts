@@ -81,7 +81,7 @@ export const Route = createFileRoute("/api/public/beacon")({
               signature_hash: result.signature_hash,
               ua_family: result.ua_family,
               slug,
-              is_honeypot_hit: true,
+              is_honeypot_hit: isTrapPath,
               ...(isIp ? { ip } : {}),
               ip_str: ip,
               country,
