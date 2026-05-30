@@ -52,8 +52,8 @@ function Landing() {
               Every bot leaves<br />
               <span className="italic text-muted-foreground">chaff behind.</span>
             </motion.h1>
-            <motion.p variants={fadeUp} className="mx-auto mt-6 max-w-xl text-base text-muted-foreground md:text-lg">
-              Paste your URL and connect Elasticsearch. Our agent reads your site, writes a bot-detection pack tailored to your exact routes, and hunts continuously — enriched with reverse-DNS, forward-confirmed verified bots, and AbuseIPDB reputation. No snippet. No install.
+            <motion.p variants={fadeUp} className="mx-auto mt-6 max-w-md text-base text-muted-foreground md:text-lg">
+              An agent that reads your site, writes detection tailored to your routes, and hunts continuously.
             </motion.p>
             <motion.div variants={fadeUp} className="mt-10 flex items-center justify-center gap-3">
               <Link to="/login" className="group inline-flex items-center gap-2 rounded-md bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90 transition">
