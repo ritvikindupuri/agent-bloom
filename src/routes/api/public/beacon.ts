@@ -47,11 +47,15 @@ export const Route = createFileRoute("/api/public/beacon")({
           return new Response(JSON.stringify({ error: "unknown slug" }), { status: 404, headers: { ...cors, "Content-Type": "application/json" } });
         }
 
-        const result = scoreBeacon(body, { honeypot: true });
+        // A beacon hit is a "honeypot hit" only when it lands on a /trap/{slug} URL.
+        // Beacons embedded on the customer's normal pages are scored on their signals alone.
+        const isTrapPath = typeof body.path === "string" && /^\/trap\/[a-z0-9]{6,32}/.test(body.path);
+        const result = scoreBeacon(body, { honeypot: isTrapPath });
 
-        // Bump hit counter
-        const { data: cur } = await supabaseAdmin.from("honeypot_keys").select("hit_count").eq("id", hp.id).maybeSingle();
-        await supabaseAdmin.from("honeypot_keys").update({ hit_count: (Number(cur?.hit_count) || 0) + 1 }).eq("id", hp.id);
+        if (isTrapPath) {
+          const { data: cur } = await supabaseAdmin.from("honeypot_keys").select("hit_count").eq("id", hp.id).maybeSingle();
+          await supabaseAdmin.from("honeypot_keys").update({ hit_count: (Number(cur?.hit_count) || 0) + 1 }).eq("id", hp.id);
+        }
 
         // Pull this user's ES connection and index the event
         const { data: conn } = await supabaseAdmin
@@ -77,7 +81,7 @@ export const Route = createFileRoute("/api/public/beacon")({
               signature_hash: result.signature_hash,
               ua_family: result.ua_family,
               slug,
-              is_honeypot_hit: true,
+              is_honeypot_hit: isTrapPath,
               ...(isIp ? { ip } : {}),
               ip_str: ip,
               country,
