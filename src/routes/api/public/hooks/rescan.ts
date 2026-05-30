@@ -10,7 +10,8 @@ export const Route = createFileRoute("/api/public/hooks/rescan")({
           return Response.json({ ok: true, ...result });
         } catch (e: any) {
           return new Response(JSON.stringify({ ok: false, error: e?.message ?? "rescan failed" }), {
-            status: 500, headers: { "Content-Type": "application/json" },
+            status: 500,
+            headers: { "Content-Type": "application/json" },
           });
         }
       },

@@ -12,7 +12,7 @@ function normalizeEndpoint(ep: string) {
 export async function esRequest<T = unknown>(
   auth: EsAuth,
   path: string,
-  init?: { method?: string; body?: unknown }
+  init?: { method?: string; body?: unknown },
 ): Promise<T> {
   const url = `${normalizeEndpoint(auth.endpoint)}${path.startsWith("/") ? "" : "/"}${path}`;
   const res = await fetch(url, {
@@ -26,17 +26,24 @@ export async function esRequest<T = unknown>(
   });
   const text = await res.text();
   let parsed: unknown = null;
-  try { parsed = text ? JSON.parse(text) : null; } catch { parsed = text; }
+  try {
+    parsed = text ? JSON.parse(text) : null;
+  } catch {
+    parsed = text;
+  }
   if (!res.ok) {
-    const msg = typeof parsed === "object" && parsed && "error" in (parsed as any)
-      ? JSON.stringify((parsed as any).error)
-      : (text || res.statusText);
+    const msg =
+      typeof parsed === "object" && parsed && "error" in (parsed as any)
+        ? JSON.stringify((parsed as any).error)
+        : text || res.statusText;
     throw new Error(`Elasticsearch ${res.status}: ${msg.slice(0, 400)}`);
   }
   return parsed as T;
 }
 
-export async function esPing(auth: EsAuth): Promise<{ name?: string; version?: { number?: string } }> {
+export async function esPing(
+  auth: EsAuth,
+): Promise<{ name?: string; version?: { number?: string } }> {
   return esRequest(auth, "/");
 }
 

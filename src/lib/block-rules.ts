@@ -133,7 +133,7 @@ export function generateBlockRule(c: CampaignLike, target: Target): string {
           },
         },
         null,
-        2
+        2,
       );
 
     case "fastly_vcl":

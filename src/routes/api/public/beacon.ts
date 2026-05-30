@@ -18,7 +18,10 @@ export const Route = createFileRoute("/api/public/beacon")({
         try {
           body = await request.json();
         } catch {
-          return new Response(JSON.stringify({ error: "invalid json" }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
+          return new Response(JSON.stringify({ error: "invalid json" }), {
+            status: 400,
+            headers: { ...cors, "Content-Type": "application/json" },
+          });
         }
 
         const ip =
@@ -36,7 +39,10 @@ export const Route = createFileRoute("/api/public/beacon")({
           if (m) slug = m[1];
         }
         if (!slug) {
-          return new Response(JSON.stringify({ error: "missing slug" }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
+          return new Response(JSON.stringify({ error: "missing slug" }), {
+            status: 400,
+            headers: { ...cors, "Content-Type": "application/json" },
+          });
         }
         const { data: hp, error: hpErr } = await supabaseAdmin
           .from("honeypot_keys")
@@ -44,17 +50,28 @@ export const Route = createFileRoute("/api/public/beacon")({
           .eq("slug", slug)
           .maybeSingle();
         if (hpErr || !hp) {
-          return new Response(JSON.stringify({ error: "unknown slug" }), { status: 404, headers: { ...cors, "Content-Type": "application/json" } });
+          return new Response(JSON.stringify({ error: "unknown slug" }), {
+            status: 404,
+            headers: { ...cors, "Content-Type": "application/json" },
+          });
         }
 
         // A beacon hit is a "honeypot hit" only when it lands on a /trap/{slug} URL.
         // Beacons embedded on the customer's normal pages are scored on their signals alone.
-        const isTrapPath = typeof body.path === "string" && /^\/trap\/[a-z0-9]{6,32}/.test(body.path);
+        const isTrapPath =
+          typeof body.path === "string" && /^\/trap\/[a-z0-9]{6,32}/.test(body.path);
         const result = scoreBeacon(body, { honeypot: isTrapPath });
 
         if (isTrapPath) {
-          const { data: cur } = await supabaseAdmin.from("honeypot_keys").select("hit_count").eq("id", hp.id).maybeSingle();
-          await supabaseAdmin.from("honeypot_keys").update({ hit_count: (Number(cur?.hit_count) || 0) + 1 }).eq("id", hp.id);
+          const { data: cur } = await supabaseAdmin
+            .from("honeypot_keys")
+            .select("hit_count")
+            .eq("id", hp.id)
+            .maybeSingle();
+          await supabaseAdmin
+            .from("honeypot_keys")
+            .update({ hit_count: (Number(cur?.hit_count) || 0) + 1 })
+            .eq("id", hp.id);
         }
 
         // Pull this user's ES connection and index the event
@@ -110,8 +127,16 @@ export const Route = createFileRoute("/api/public/beacon")({
         }
 
         return new Response(
-          JSON.stringify({ ok: true, verdict: result.verdict, score: result.score, reasons: result.reasons, signature_hash: result.signature_hash, indexed, indexError }),
-          { status: 200, headers: { ...cors, "Content-Type": "application/json" } }
+          JSON.stringify({
+            ok: true,
+            verdict: result.verdict,
+            score: result.score,
+            reasons: result.reasons,
+            signature_hash: result.signature_hash,
+            indexed,
+            indexError,
+          }),
+          { status: 200, headers: { ...cors, "Content-Type": "application/json" } },
         );
       },
     },

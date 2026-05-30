@@ -28,9 +28,9 @@ type Detector = {
   severity: "low" | "medium" | "high" | "critical";
   target_path?: string;
   es_query: any; // ES bool query body
-  match_count?: number;             // total raw matches
-  match_count_clean?: number;       // excluding verified bots
-  offenders?: Offender[];           // top enriched IPs
+  match_count?: number; // total raw matches
+  match_count_clean?: number; // excluding verified bots
+  offenders?: Offender[]; // top enriched IPs
 };
 
 async function callAI(messages: any[], responseSchema?: any): Promise<any> {
@@ -51,12 +51,17 @@ async function callAI(messages: any[], responseSchema?: any): Promise<any> {
   if (!res.ok) {
     const t = await res.text();
     if (res.status === 429) throw new Error("AI rate-limited. Try again in a minute.");
-    if (res.status === 402) throw new Error("AI credits exhausted. Add credits in Workspace → Usage.");
+    if (res.status === 402)
+      throw new Error("AI credits exhausted. Add credits in Workspace → Usage.");
     throw new Error(`AI ${res.status}: ${t.slice(0, 300)}`);
   }
   const j = await res.json();
   const content = j.choices?.[0]?.message?.content ?? "{}";
-  try { return JSON.parse(content); } catch { return content; }
+  try {
+    return JSON.parse(content);
+  } catch {
+    return content;
+  }
 }
 
 async function sampleOneDoc(auth: EsAuth, indexPattern: string): Promise<any | null> {
@@ -95,8 +100,15 @@ async function detectSchemaFromSample(sample: any): Promise<DetectedSchema> {
   };
   const out = await callAI(
     [
-      { role: "system", content: "You map Elasticsearch document fields to standard web-access-log roles. Pick the BEST matching field name from the provided list for each role. Use exact field names from the list. If a role has no good match, pick the closest available." },
-      { role: "user", content: `Sample document fields:\n${JSON.stringify(fields, null, 2)}\n\nSample values (truncated):\n${JSON.stringify(sample, null, 2).slice(0, 2500)}\n\nReturn the field mapping.` },
+      {
+        role: "system",
+        content:
+          "You map Elasticsearch document fields to standard web-access-log roles. Pick the BEST matching field name from the provided list for each role. Use exact field names from the list. If a role has no good match, pick the closest available.",
+      },
+      {
+        role: "user",
+        content: `Sample document fields:\n${JSON.stringify(fields, null, 2)}\n\nSample values (truncated):\n${JSON.stringify(sample, null, 2).slice(0, 2500)}\n\nReturn the field mapping.`,
+      },
     ],
     SCHEMA,
   );
@@ -178,7 +190,10 @@ Elasticsearch field mapping for this customer:
 Generate the detector pack.`;
 
   const out = await callAI(
-    [{ role: "system", content: sys }, { role: "user", content: user }],
+    [
+      { role: "system", content: sys },
+      { role: "user", content: user },
+    ],
     SCHEMA,
   );
   return (out?.detectors ?? []) as Detector[];
@@ -198,7 +213,11 @@ async function dryRunAndEnrichDetectors(
   for (const d of detectors) {
     try {
       const inner = d.es_query?.bool ?? d.es_query;
-      const filters = Array.isArray(inner?.filter) ? [...inner.filter] : (inner?.filter ? [inner.filter] : []);
+      const filters = Array.isArray(inner?.filter)
+        ? [...inner.filter]
+        : inner?.filter
+          ? [inner.filter]
+          : [];
       filters.push({ range: { [tsField]: { gte: "now-24h", lte: "now" } } });
       // Search + terms agg on IP to get top offenders, with a top_hits sub-agg for sample UA.
       const body = {
@@ -218,7 +237,10 @@ async function dryRunAndEnrichDetectors(
           },
         },
       };
-      const r: any = await esRequest(auth, `/${encodeURIComponent(indexPattern)}/_search`, { method: "POST", body });
+      const r: any = await esRequest(auth, `/${encodeURIComponent(indexPattern)}/_search`, {
+        method: "POST",
+        body,
+      });
       const total = r?.hits?.total?.value ?? r?.hits?.total ?? 0;
       const buckets: any[] = r?.aggregations?.top_ips?.buckets?.length
         ? r.aggregations.top_ips.buckets
@@ -235,10 +257,12 @@ async function dryRunAndEnrichDetectors(
           return { ip: String(b.key), eventCount: b.doc_count as number, sampleUserAgent: ua };
         });
       const enriched = await enrichIps(inputs);
-      const offenders: Offender[] = enriched.map((e) => {
-        const m = inputs.find((i) => i.ip === e.ip)!;
-        return { ...e, eventCount: m.eventCount, sampleUserAgent: m.sampleUserAgent };
-      }).sort((a, b) => b.confidence - a.confidence || b.eventCount - a.eventCount);
+      const offenders: Offender[] = enriched
+        .map((e) => {
+          const m = inputs.find((i) => i.ip === e.ip)!;
+          return { ...e, eventCount: m.eventCount, sampleUserAgent: m.sampleUserAgent };
+        })
+        .sort((a, b) => b.confidence - a.confidence || b.eventCount - a.eventCount);
 
       const verifiedEvents = offenders
         .filter((o) => o.classification === "verified_bot")
@@ -273,7 +297,11 @@ export const activate = createServerFn({ method: "POST" })
     try {
       const ping = await esPing(auth);
       esVersion = ping.version?.number ?? "";
-      steps.push({ name: "Connect Elasticsearch", ok: true, detail: esVersion ? `v${esVersion}` : "ok" });
+      steps.push({
+        name: "Connect Elasticsearch",
+        ok: true,
+        detail: esVersion ? `v${esVersion}` : "ok",
+      });
     } catch (e: any) {
       return { ok: false as const, error: `Elasticsearch: ${e?.message ?? "unreachable"}`, steps };
     }
@@ -282,7 +310,11 @@ export const activate = createServerFn({ method: "POST" })
     let recon;
     try {
       recon = await scanUrl(data.siteUrl);
-      steps.push({ name: "Scan site with Firecrawl", ok: true, detail: `${recon.stack.label} • ${recon.pageCount} links` });
+      steps.push({
+        name: "Scan site with Firecrawl",
+        ok: true,
+        detail: `${recon.stack.label} • ${recon.pageCount} links`,
+      });
     } catch (e: any) {
       return { ok: false as const, error: `Site scan: ${e?.message ?? "failed"}`, steps };
     }
@@ -300,13 +332,26 @@ export const activate = createServerFn({ method: "POST" })
         status_field: "http.response.status_code",
         notes: "No documents found yet — using Elastic Common Schema defaults.",
       };
-      steps.push({ name: "Auto-detect log schema", ok: true, detail: "no logs yet — using ECS defaults" });
+      steps.push({
+        name: "Auto-detect log schema",
+        ok: true,
+        detail: "no logs yet — using ECS defaults",
+      });
     } else {
       try {
         schema = await detectSchemaFromSample(sample);
-        steps.push({ name: "Auto-detect log schema", ok: true, detail: `ts=${schema.timestamp_field} • ip=${schema.ip_field}` });
+        steps.push({
+          name: "Auto-detect log schema",
+          ok: true,
+          detail: `ts=${schema.timestamp_field} • ip=${schema.ip_field}`,
+        });
       } catch (e: any) {
-        return { ok: false as const, error: `Schema detection: ${e?.message ?? "failed"}`, steps, recon };
+        return {
+          ok: false as const,
+          error: `Schema detection: ${e?.message ?? "failed"}`,
+          steps,
+          recon,
+        };
       }
     }
 
@@ -322,18 +367,36 @@ export const activate = createServerFn({ method: "POST" })
         title: recon.title,
         schema,
       });
-      steps.push({ name: "Generate site-specific detectors", ok: true, detail: `${detectors.length} rules tailored to your site` });
+      steps.push({
+        name: "Generate site-specific detectors",
+        ok: true,
+        detail: `${detectors.length} rules tailored to your site`,
+      });
     } catch (e: any) {
-      return { ok: false as const, error: `Detector generation: ${e?.message ?? "failed"}`, steps, recon };
+      return {
+        ok: false as const,
+        error: `Detector generation: ${e?.message ?? "failed"}`,
+        steps,
+        recon,
+      };
     }
 
     // 5. Dry-run + IP enrichment (rDNS, verified-bot allowlist, confidence scoring)
     let withCounts = detectors;
     if (sample) {
       withCounts = await dryRunAndEnrichDetectors(auth, data.indexPattern, schema, detectors);
-      const totalClean = withCounts.reduce((s, d) => s + (d.match_count_clean ?? d.match_count ?? 0), 0);
-      const verifiedExcluded = withCounts.reduce((s, d) => s + ((d.match_count ?? 0) - (d.match_count_clean ?? d.match_count ?? 0)), 0);
-      const malicious = withCounts.reduce((s, d) => s + (d.offenders?.filter((o) => o.classification === "malicious").length ?? 0), 0);
+      const totalClean = withCounts.reduce(
+        (s, d) => s + (d.match_count_clean ?? d.match_count ?? 0),
+        0,
+      );
+      const verifiedExcluded = withCounts.reduce(
+        (s, d) => s + ((d.match_count ?? 0) - (d.match_count_clean ?? d.match_count ?? 0)),
+        0,
+      );
+      const malicious = withCounts.reduce(
+        (s, d) => s + (d.offenders?.filter((o) => o.classification === "malicious").length ?? 0),
+        0,
+      );
       steps.push({
         name: "Enrich offenders + verify bots",
         ok: true,
@@ -368,10 +431,18 @@ export const activate = createServerFn({ method: "POST" })
         pageCount: recon.pageCount,
         suspectedSurface: recon.suspectedSurface,
       },
-      detector_pack: { detectors: withCounts, schema_notes: schema.notes ?? null, es_version: esVersion },
+      detector_pack: {
+        detectors: withCounts,
+        schema_notes: schema.notes ?? null,
+        es_version: esVersion,
+      },
       updated_at: now,
     };
-    const { data: inserted, error } = await supabase.from("es_connections").insert(row).select("id").single();
+    const { data: inserted, error } = await supabase
+      .from("es_connections")
+      .insert(row)
+      .select("id")
+      .single();
     if (error) return { ok: false as const, error: error.message, steps };
 
     return {
@@ -390,7 +461,9 @@ export const getActivation = createServerFn({ method: "GET" })
     const { supabase, userId } = context;
     const { data, error } = await supabase
       .from("es_connections")
-      .select("id,label,site_url,site_recon,detector_pack,schema_detected_at,detectors_generated_at,index_pattern,timestamp_field,ip_field,user_agent_field,url_field,status_field")
+      .select(
+        "id,label,site_url,site_recon,detector_pack,schema_detected_at,detectors_generated_at,index_pattern,timestamp_field,ip_field,user_agent_field,url_field,status_field",
+      )
       .eq("user_id", userId)
       .eq("is_active", true)
       .order("created_at", { ascending: false })
@@ -469,13 +542,22 @@ export const getBlocklist = createServerFn({ method: "GET" })
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
-    const detectors: Detector[] = ((data?.detector_pack as any)?.detectors ?? []);
-    const map = new Map<string, { ip: string; confidence: number; events: number; reasons: string[]; rules: Set<string> }>();
+    const detectors: Detector[] = (data?.detector_pack as any)?.detectors ?? [];
+    const map = new Map<
+      string,
+      { ip: string; confidence: number; events: number; reasons: string[]; rules: Set<string> }
+    >();
     for (const d of detectors) {
       for (const o of d.offenders ?? []) {
         if (o.classification === "verified_bot" || o.classification === "benign") continue;
         if (o.confidence < 40) continue;
-        const cur = map.get(o.ip) ?? { ip: o.ip, confidence: 0, events: 0, reasons: [], rules: new Set<string>() };
+        const cur = map.get(o.ip) ?? {
+          ip: o.ip,
+          confidence: 0,
+          events: 0,
+          reasons: [],
+          rules: new Set<string>(),
+        };
         cur.confidence = Math.max(cur.confidence, o.confidence);
         cur.events += o.eventCount;
         cur.reasons = Array.from(new Set([...cur.reasons, ...o.reasons]));
@@ -483,7 +565,9 @@ export const getBlocklist = createServerFn({ method: "GET" })
         map.set(o.ip, cur);
       }
     }
-    const offenders = Array.from(map.values()).sort((a, b) => b.confidence - a.confidence || b.events - a.events);
+    const offenders = Array.from(map.values()).sort(
+      (a, b) => b.confidence - a.confidence || b.events - a.events,
+    );
     const host = data?.label ?? "chaff";
     const date = new Date().toISOString();
     const header = `# Chaff blocklist for ${host} — generated ${date}\n# ${offenders.length} IPs (confidence ≥ 40, verified bots excluded)`;
@@ -491,7 +575,10 @@ export const getBlocklist = createServerFn({ method: "GET" })
     const nginx = [
       header,
       "# Drop into nginx http {} block:",
-      ...offenders.map((o) => `deny ${o.ip};  # confidence=${o.confidence} events=${o.events} rules=${Array.from(o.rules).join("|")}`),
+      ...offenders.map(
+        (o) =>
+          `deny ${o.ip};  # confidence=${o.confidence} events=${o.events} rules=${Array.from(o.rules).join("|")}`,
+      ),
     ].join("\n");
 
     const cloudflare = [

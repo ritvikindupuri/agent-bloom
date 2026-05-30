@@ -40,7 +40,10 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
         <p className="mt-2 text-sm text-muted-foreground">{error.message}</p>
         <div className="mt-6 flex justify-center gap-2">
           <button
-            onClick={() => { router.invalidate(); reset(); }}
+            onClick={() => {
+              router.invalidate();
+              reset();
+            }}
             className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
           >
             Try again
@@ -57,10 +60,17 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "Chaff — Separate humans from bots" },
-      { name: "description", content: "Chaff is an autonomous bot-traffic analyst. Connect Elasticsearch, let a Gemini agent investigate scrapers, credential stuffing, and scanners in your real logs." },
+      {
+        name: "description",
+        content:
+          "Chaff is an autonomous bot-traffic analyst. Connect Elasticsearch, let a Gemini agent investigate scrapers, credential stuffing, and scanners in your real logs.",
+      },
       { name: "author", content: "Chaff" },
       { property: "og:title", content: "Chaff — Separate humans from bots" },
-      { property: "og:description", content: "Autonomous bot-traffic analyst powered by Gemini and your Elasticsearch logs." },
+      {
+        property: "og:description",
+        content: "Autonomous bot-traffic analyst powered by Gemini and your Elasticsearch logs.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -68,7 +78,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "stylesheet", href: appCss },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
-      { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" },
+      {
+        rel: "stylesheet",
+        href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap",
+      },
     ],
   }),
   shellComponent: RootShell,

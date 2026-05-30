@@ -100,8 +100,11 @@
 }
 
 @layer base {
-  * { border-color: var(--color-border); }
-  html, body {
+  * {
+    border-color: var(--color-border);
+  }
+  html,
+  body {
     background-color: var(--color-background);
     color: var(--color-foreground);
     font-family: var(--font-sans);
@@ -109,12 +112,18 @@
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
   }
-  ::selection { background: oklch(0.78 0.16 155 / 0.25); }
+  ::selection {
+    background: oklch(0.78 0.16 155 / 0.25);
+  }
 }
 
 @layer utilities {
-  .font-display { font-family: var(--font-display); }
-  .font-mono { font-family: var(--font-mono); }
+  .font-display {
+    font-family: var(--font-display);
+  }
+  .font-mono {
+    font-family: var(--font-mono);
+  }
   .grid-bg {
     background-image:
       linear-gradient(to right, oklch(1 0 0 / 0.03) 1px, transparent 1px),
@@ -122,8 +131,13 @@
     background-size: 32px 32px;
   }
   .noise::before {
-    content: ""; position: absolute; inset: 0; pointer-events: none;
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
     background-image: radial-gradient(oklch(1 0 0 / 0.04) 1px, transparent 1px);
-    background-size: 3px 3px; mix-blend-mode: overlay; opacity: 0.4;
+    background-size: 3px 3px;
+    mix-blend-mode: overlay;
+    opacity: 0.4;
   }
 }

@@ -24,7 +24,8 @@ export type StackInfo = {
 const STACKS: Record<StackId, Omit<StackInfo, "id">> = {
   wordpress: {
     label: "WordPress",
-    installLocation: "Paste in your active theme's footer.php just before </body>, or use a header/footer plugin.",
+    installLocation:
+      "Paste in your active theme's footer.php just before </body>, or use a header/footer plugin.",
     baitPaths: [
       "/wp-admin/setup-config.php",
       "/wp-content/backup-db/",
@@ -36,7 +37,8 @@ const STACKS: Record<StackId, Omit<StackInfo, "id">> = {
   },
   shopify: {
     label: "Shopify",
-    installLocation: "Online Store → Themes → Edit code → layout/theme.liquid, paste before </body>.",
+    installLocation:
+      "Online Store → Themes → Edit code → layout/theme.liquid, paste before </body>.",
     baitPaths: [
       "/admin/orders.json",
       "/admin/products.json?debug=1",
@@ -47,7 +49,8 @@ const STACKS: Record<StackId, Omit<StackInfo, "id">> = {
   },
   nextjs: {
     label: "Next.js",
-    installLocation: "Add to app/layout.tsx (App Router) or pages/_app.tsx (Pages Router) inside the <body>.",
+    installLocation:
+      "Add to app/layout.tsx (App Router) or pages/_app.tsx (Pages Router) inside the <body>.",
     baitPaths: [
       "/api/admin",
       "/api/internal/debug",
@@ -60,13 +63,7 @@ const STACKS: Record<StackId, Omit<StackInfo, "id">> = {
     label: "React SPA",
     installLocation:
       "Paste into public/index.html (or root index.html for Vite) just before </body>. Do NOT paste into a .jsx/.tsx component — React ignores inline <script> tags rendered via JSX.",
-    baitPaths: [
-      "/.env",
-      "/config.js.bak",
-      "/admin",
-      "/api/internal",
-      "/.git/HEAD",
-    ],
+    baitPaths: ["/.env", "/config.js.bak", "/admin", "/api/internal", "/.git/HEAD"],
   },
   webflow: {
     label: "Webflow",
@@ -97,13 +94,7 @@ const STACKS: Record<StackId, Omit<StackInfo, "id">> = {
   rails: {
     label: "Ruby on Rails",
     installLocation: "Add to app/views/layouts/application.html.erb before </body>.",
-    baitPaths: [
-      "/rails/info/routes",
-      "/rails/db",
-      "/.env",
-      "/config/database.yml",
-      "/secrets.yml",
-    ],
+    baitPaths: ["/rails/info/routes", "/rails/db", "/.env", "/config/database.yml", "/secrets.yml"],
   },
   django: {
     label: "Django",
@@ -123,22 +114,52 @@ const STACKS: Record<StackId, Omit<StackInfo, "id">> = {
   },
 };
 
-export function detectStack(html: string, headers: Record<string, string> = {}, sourceURL?: string): StackId {
+export function detectStack(
+  html: string,
+  headers: Record<string, string> = {},
+  sourceURL?: string,
+): StackId {
   const h = html || "";
   const lower = h.toLowerCase();
   const serverHeader = (headers["server"] || headers["Server"] || "").toLowerCase();
   const poweredBy = (headers["x-powered-by"] || headers["X-Powered-By"] || "").toLowerCase();
 
-  if (lower.includes("/wp-content/") || lower.includes("wp-includes") || /<meta[^>]+generator[^>]+wordpress/i.test(h)) return "wordpress";
-  if (lower.includes("cdn.shopify.com") || lower.includes("shopify.shop") || lower.includes('"shopify"')) return "shopify";
+  if (
+    lower.includes("/wp-content/") ||
+    lower.includes("wp-includes") ||
+    /<meta[^>]+generator[^>]+wordpress/i.test(h)
+  )
+    return "wordpress";
+  if (
+    lower.includes("cdn.shopify.com") ||
+    lower.includes("shopify.shop") ||
+    lower.includes('"shopify"')
+  )
+    return "shopify";
   if (lower.includes("__next_data__") || lower.includes("/_next/static")) return "nextjs";
   if (lower.includes("webflow.com") || lower.includes("data-wf-")) return "webflow";
   if (lower.includes("static.wixstatic.com") || lower.includes("wix-warmup-data")) return "wix";
-  if (lower.includes("static1.squarespace.com") || lower.includes("squarespace-cdn")) return "squarespace";
-  if (poweredBy.includes("laravel") || lower.includes("/vendor/laravel") || lower.includes('name="csrf-token"')) return "laravel";
-  if (serverHeader.includes("phusion passenger") || lower.includes("ruby on rails") || lower.includes('name="csrf-param"')) return "rails";
+  if (lower.includes("static1.squarespace.com") || lower.includes("squarespace-cdn"))
+    return "squarespace";
+  if (
+    poweredBy.includes("laravel") ||
+    lower.includes("/vendor/laravel") ||
+    lower.includes('name="csrf-token"')
+  )
+    return "laravel";
+  if (
+    serverHeader.includes("phusion passenger") ||
+    lower.includes("ruby on rails") ||
+    lower.includes('name="csrf-param"')
+  )
+    return "rails";
   if (lower.includes("csrfmiddlewaretoken") || lower.includes("django")) return "django";
-  if (lower.includes('id="root"') || lower.includes('id="app"') || /<script[^>]+src=["'][^"']*assets\/index-[\w-]+\.js/.test(h)) return "react-spa";
+  if (
+    lower.includes('id="root"') ||
+    lower.includes('id="app"') ||
+    /<script[^>]+src=["'][^"']*assets\/index-[\w-]+\.js/.test(h)
+  )
+    return "react-spa";
   return "static";
 }
 
@@ -185,7 +206,7 @@ export async function scanUrl(rawUrl: string, expectedSlug?: string): Promise<Sc
   // We don't require the literal "beacon.js" string because Firecrawl's
   // rendered HTML can strip inline <script> tags.
   const beaconDetected = expectedSlug
-    ? (html.includes(expectedSlug) || rawHtml.includes(expectedSlug))
+    ? html.includes(expectedSlug) || rawHtml.includes(expectedSlug)
     : false;
 
   // Lightweight attack-surface heuristics from links we already have
@@ -195,11 +216,20 @@ export async function scanUrl(rawUrl: string, expectedSlug?: string): Promise<Sc
       const u = new URL(link);
       const p = u.pathname.toLowerCase();
       if (p.includes("/admin") && !suspectedSurface.find((s) => s.path === u.pathname))
-        suspectedSurface.push({ path: u.pathname, reason: "Admin path exposed in HTML — bots will probe variants" });
+        suspectedSurface.push({
+          path: u.pathname,
+          reason: "Admin path exposed in HTML — bots will probe variants",
+        });
       if (p.includes("/login") && !suspectedSurface.find((s) => s.path === u.pathname))
-        suspectedSurface.push({ path: u.pathname, reason: "Login endpoint — credential stuffing target" });
+        suspectedSurface.push({
+          path: u.pathname,
+          reason: "Login endpoint — credential stuffing target",
+        });
       if (p.includes("/api/") && !suspectedSurface.find((s) => s.path === u.pathname))
-        suspectedSurface.push({ path: u.pathname, reason: "API surface exposed — scrape & enumeration target" });
+        suspectedSurface.push({
+          path: u.pathname,
+          reason: "API surface exposed — scrape & enumeration target",
+        });
     } catch {
       /* ignore */
     }

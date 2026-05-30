@@ -5,7 +5,6 @@ import { searchEvents, chaffIndex } from "./es-chaff.server";
 import type { EsAuth } from "./es.server";
 import { generateBlockRule, TARGETS, type Target } from "./block-rules";
 
-
 const AI_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
 
 async function getConn(supabase: any, userId: string) {
@@ -20,7 +19,10 @@ async function getConn(supabase: any, userId: string) {
   return data;
 }
 
-async function geminiText(messages: any[], model = "google/gemini-3-flash-preview"): Promise<string> {
+async function geminiText(
+  messages: any[],
+  model = "google/gemini-3-flash-preview",
+): Promise<string> {
   const apiKey = process.env.LOVABLE_API_KEY;
   if (!apiKey) throw new Error("LOVABLE_API_KEY missing");
   const res = await fetch(AI_URL, {
@@ -80,19 +82,32 @@ export const getCampaign = createServerFn({ method: "POST" })
 
 export const updateCampaignStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator(z.object({ id: z.string().uuid(), status: z.enum(["active", "resolved", "monitoring"]) }).parse)
+  .inputValidator(
+    z.object({ id: z.string().uuid(), status: z.enum(["active", "resolved", "monitoring"]) }).parse,
+  )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
-    const { error } = await supabase.from("bot_campaigns")
+    const { error } = await supabase
+      .from("bot_campaigns")
       .update({ status: data.status, updated_at: new Date().toISOString() })
-      .eq("id", data.id).eq("user_id", userId);
+      .eq("id", data.id)
+      .eq("user_id", userId);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
 
 export const clusterCampaigns = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator(z.object({ windowMinutes: z.number().int().min(5).max(60 * 24 * 14).default(1440) }).parse)
+  .inputValidator(
+    z.object({
+      windowMinutes: z
+        .number()
+        .int()
+        .min(5)
+        .max(60 * 24 * 14)
+        .default(1440),
+    }).parse,
+  )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const conn = await getConn(supabase, userId);
@@ -168,20 +183,43 @@ export const clusterCampaigns = createServerFn({ method: "POST" })
       let killRule = existing?.kill_rule;
       if (!existing) {
         try {
-          name = (await geminiText([
-            { role: "system", content: "You name bot campaigns. Reply with ONE short codename, 1-3 words, snake-case allowed, no quotes, no punctuation except hyphen. Examples: ScraperFleet-Aurora, HeadlessHorde, GhostBrowser-7." },
-            { role: "user", content: `Fingerprint:\n${JSON.stringify(fingerprint, null, 2)}\nEvents: ${eventCount}, IPs: ${ipCount}.` },
-          ])).trim().split("\n")[0].replace(/["'`]/g, "").slice(0, 60) || `Cluster-${sig}`;
+          name =
+            (
+              await geminiText([
+                {
+                  role: "system",
+                  content:
+                    "You name bot campaigns. Reply with ONE short codename, 1-3 words, snake-case allowed, no quotes, no punctuation except hyphen. Examples: ScraperFleet-Aurora, HeadlessHorde, GhostBrowser-7.",
+                },
+                {
+                  role: "user",
+                  content: `Fingerprint:\n${JSON.stringify(fingerprint, null, 2)}\nEvents: ${eventCount}, IPs: ${ipCount}.`,
+                },
+              ])
+            )
+              .trim()
+              .split("\n")[0]
+              .replace(/["'`]/g, "")
+              .slice(0, 60) || `Cluster-${sig}`;
         } catch {
           name = `Cluster-${sig}`;
         }
         try {
           killRule = await geminiText([
-            { role: "system", content: "You produce a deployable Cloudflare WAF custom rule expression (single line) to block this bot cluster. Use ONLY fields available in Cloudflare: ip.src, http.user_agent, http.request.uri.path, cf.client.bot. Output ONLY the expression, no prose, no code fences." },
+            {
+              role: "system",
+              content:
+                "You produce a deployable Cloudflare WAF custom rule expression (single line) to block this bot cluster. Use ONLY fields available in Cloudflare: ip.src, http.user_agent, http.request.uri.path, cf.client.bot. Output ONLY the expression, no prose, no code fences.",
+            },
             { role: "user", content: `Block fingerprint: ${JSON.stringify(fingerprint)}` },
           ]);
-          killRule = killRule.replace(/```[\s\S]*?\n|```/g, "").trim().slice(0, 800);
-        } catch { killRule = null; }
+          killRule = killRule
+            .replace(/```[\s\S]*?\n|```/g, "")
+            .trim()
+            .slice(0, 800);
+        } catch {
+          killRule = null;
+        }
       }
 
       const upsert = {
@@ -232,7 +270,8 @@ export const liveEvents = createServerFn({ method: "POST" })
       });
       const events = (res?.hits?.hits ?? []).map((h: any) => ({ id: h._id, ...h._source }));
       const verdicts: Record<string, number> = {};
-      for (const b of res?.aggregations?.last15?.by_verdict?.buckets ?? []) verdicts[b.key] = b.doc_count;
+      for (const b of res?.aggregations?.last15?.by_verdict?.buckets ?? [])
+        verdicts[b.key] = b.doc_count;
       return {
         events,
         totals: {
@@ -244,7 +283,11 @@ export const liveEvents = createServerFn({ method: "POST" })
     } catch (e: any) {
       const msg = e?.message ?? "";
       if (/index_not_found/.test(msg) || /no such index/i.test(msg)) {
-        return { events: [], totals: { last15_total: 0, last15_verdicts: {}, last24h: 0 }, error: "no_events" };
+        return {
+          events: [],
+          totals: { last15_total: 0, last15_verdicts: {}, last24h: 0 },
+          error: "no_events",
+        };
       }
       return { events: [], totals: null, error: msg };
     }
@@ -253,15 +296,28 @@ export const liveEvents = createServerFn({ method: "POST" })
 // === Block-rule export ===
 export const exportBlockRule = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator(z.object({
-    id: z.string().uuid(),
-    target: z.enum(["cloudflare", "nginx", "caddy", "haproxy", "aws_waf", "iptables", "fastly_vcl"]),
-  }).parse)
+  .inputValidator(
+    z.object({
+      id: z.string().uuid(),
+      target: z.enum([
+        "cloudflare",
+        "nginx",
+        "caddy",
+        "haproxy",
+        "aws_waf",
+        "iptables",
+        "fastly_vcl",
+      ]),
+    }).parse,
+  )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const { data: row, error } = await supabase
-      .from("bot_campaigns").select("*")
-      .eq("id", data.id).eq("user_id", userId).maybeSingle();
+      .from("bot_campaigns")
+      .select("*")
+      .eq("id", data.id)
+      .eq("user_id", userId)
+      .maybeSingle();
     if (error) throw new Error(error.message);
     if (!row) throw new Error("Campaign not found");
     const rule = generateBlockRule(row as any, data.target as Target);
@@ -274,8 +330,12 @@ export const enrichTopIp = createServerFn({ method: "POST" })
   .inputValidator(z.object({ id: z.string().uuid() }).parse)
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
-    const { data: row } = await supabase.from("bot_campaigns")
-      .select("id,fingerprint").eq("id", data.id).eq("user_id", userId).maybeSingle();
+    const { data: row } = await supabase
+      .from("bot_campaigns")
+      .select("id,fingerprint")
+      .eq("id", data.id)
+      .eq("user_id", userId)
+      .maybeSingle();
     if (!row) throw new Error("Campaign not found");
     const ip = (row.fingerprint as any)?.top_ip;
     if (!ip || !/^\d{1,3}(\.\d{1,3}){3}$/.test(ip)) return { intel: null, reason: "no_ip" };
@@ -288,35 +348,61 @@ export const enrichTopIp = createServerFn({ method: "POST" })
     if (j.status !== "success") return { intel: null, reason: j.message || "lookup_failed" };
 
     const intel = {
-      ip: j.query, country: j.country, country_code: j.countryCode,
-      region: j.regionName, city: j.city, isp: j.isp, org: j.org,
-      asn: j.as, asn_name: j.asname,
+      ip: j.query,
+      country: j.country,
+      country_code: j.countryCode,
+      region: j.regionName,
+      city: j.city,
+      isp: j.isp,
+      org: j.org,
+      asn: j.as,
+      asn_name: j.asname,
       flags: {
-        proxy: !!j.proxy, hosting: !!j.hosting, mobile: !!j.mobile,
+        proxy: !!j.proxy,
+        hosting: !!j.hosting,
+        mobile: !!j.mobile,
       },
       checked_at: new Date().toISOString(),
     };
     // Persist on the campaign so the next view doesn't re-fetch
     const merged = { ...(row.fingerprint as any), ip_intel: intel };
-    await supabase.from("bot_campaigns").update({ fingerprint: merged, updated_at: new Date().toISOString() }).eq("id", data.id);
+    await supabase
+      .from("bot_campaigns")
+      .update({ fingerprint: merged, updated_at: new Date().toISOString() })
+      .eq("id", data.id);
     return { intel };
   });
 
 // === Block & log: marks campaign resolved + records an audit finding ===
 export const recordBlockAction = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator(z.object({
-    id: z.string().uuid(),
-    target: z.enum(["cloudflare", "nginx", "caddy", "haproxy", "aws_waf", "iptables", "fastly_vcl"]),
-  }).parse)
+  .inputValidator(
+    z.object({
+      id: z.string().uuid(),
+      target: z.enum([
+        "cloudflare",
+        "nginx",
+        "caddy",
+        "haproxy",
+        "aws_waf",
+        "iptables",
+        "fastly_vcl",
+      ]),
+    }).parse,
+  )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
-    const { data: row } = await supabase.from("bot_campaigns")
-      .select("*").eq("id", data.id).eq("user_id", userId).maybeSingle();
+    const { data: row } = await supabase
+      .from("bot_campaigns")
+      .select("*")
+      .eq("id", data.id)
+      .eq("user_id", userId)
+      .maybeSingle();
     if (!row) throw new Error("Campaign not found");
     const rule = generateBlockRule(row as any, data.target as Target);
 
-    await supabase.from("bot_campaigns")
+    await supabase
+      .from("bot_campaigns")
       .update({ status: "resolved", kill_rule: rule, updated_at: new Date().toISOString() })
       .eq("id", data.id);
 
@@ -332,7 +418,12 @@ export const recordBlockAction = createServerFn({ method: "POST" })
       first_seen: row.first_seen,
       last_seen: row.last_seen,
       status: "blocked",
-      evidence: { signature_hash: row.signature_hash, target: data.target, rule, fingerprint: row.fingerprint },
+      evidence: {
+        signature_hash: row.signature_hash,
+        target: data.target,
+        rule,
+        fingerprint: row.fingerprint,
+      },
     });
 
     return { ok: true };

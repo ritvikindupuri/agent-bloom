@@ -7,20 +7,30 @@ import { enrichIps, type IpEnrichment } from "./ip-intel.server";
 
 type Offender = IpEnrichment & { eventCount: number; sampleUserAgent: string | null };
 type Detector = {
-  id: string; name: string; rationale: string;
+  id: string;
+  name: string;
+  rationale: string;
   severity: "low" | "medium" | "high" | "critical";
-  target_path?: string; es_query: any;
-  match_count?: number; match_count_clean?: number; offenders?: Offender[];
+  target_path?: string;
+  es_query: any;
+  match_count?: number;
+  match_count_clean?: number;
+  offenders?: Offender[];
 };
 
 async function runDetector(
-  auth: EsAuth, indexPattern: string,
+  auth: EsAuth,
+  indexPattern: string,
   schema: { timestamp_field: string; ip_field: string; user_agent_field: string },
   d: Detector,
 ): Promise<Detector> {
   try {
     const inner = d.es_query?.bool ?? d.es_query;
-    const filters = Array.isArray(inner?.filter) ? [...inner.filter] : (inner?.filter ? [inner.filter] : []);
+    const filters = Array.isArray(inner?.filter)
+      ? [...inner.filter]
+      : inner?.filter
+        ? [inner.filter]
+        : [];
     filters.push({ range: { [schema.timestamp_field]: { gte: "now-24h", lte: "now" } } });
     const ipKw = `${schema.ip_field}.keyword`;
     const body = {
@@ -35,16 +45,23 @@ async function runDetector(
         top_ips_raw: { terms: { field: schema.ip_field, size: 10, missing: "unknown" } },
       },
     };
-    const r: any = await esRequest(auth, `/${encodeURIComponent(indexPattern)}/_search`, { method: "POST", body });
+    const r: any = await esRequest(auth, `/${encodeURIComponent(indexPattern)}/_search`, {
+      method: "POST",
+      body,
+    });
     const total = r?.hits?.total?.value ?? r?.hits?.total ?? 0;
     const buckets: any[] = r?.aggregations?.top_ips?.buckets?.length
       ? r.aggregations.top_ips.buckets
       : (r?.aggregations?.top_ips_raw?.buckets ?? []);
-    const inputs = buckets.filter((b) => b.key && b.key !== "unknown").map((b) => {
-      const hit = b.sample?.hits?.hits?.[0]?._source;
-      const ua = hit ? (schema.user_agent_field.split(".").reduce((acc: any, k) => acc?.[k], hit) ?? null) : null;
-      return { ip: String(b.key), eventCount: b.doc_count as number, sampleUserAgent: ua };
-    });
+    const inputs = buckets
+      .filter((b) => b.key && b.key !== "unknown")
+      .map((b) => {
+        const hit = b.sample?.hits?.hits?.[0]?._source;
+        const ua = hit
+          ? (schema.user_agent_field.split(".").reduce((acc: any, k) => acc?.[k], hit) ?? null)
+          : null;
+        return { ip: String(b.key), eventCount: b.doc_count as number, sampleUserAgent: ua };
+      });
     const enriched = await enrichIps(inputs);
     const offenders: Offender[] = enriched
       .map((e) => {
@@ -52,28 +69,45 @@ async function runDetector(
         return { ...e, eventCount: m.eventCount, sampleUserAgent: m.sampleUserAgent };
       })
       .sort((a, b) => b.confidence - a.confidence || b.eventCount - a.eventCount);
-    const verified = offenders.filter((o) => o.classification === "verified_bot").reduce((s, o) => s + o.eventCount, 0);
-    return { ...d, match_count: total, match_count_clean: Math.max(0, total - verified), offenders };
+    const verified = offenders
+      .filter((o) => o.classification === "verified_bot")
+      .reduce((s, o) => s + o.eventCount, 0);
+    return {
+      ...d,
+      match_count: total,
+      match_count_clean: Math.max(0, total - verified),
+      offenders,
+    };
   } catch {
     return { ...d, match_count: 0, match_count_clean: 0, offenders: [] };
   }
 }
 
 export async function rescanAll(): Promise<{
-  scanned: number; failed: number; newFindings: number; perConnection: { id: string; ok: boolean; threats: number; error?: string }[];
+  scanned: number;
+  failed: number;
+  newFindings: number;
+  perConnection: { id: string; ok: boolean; threats: number; error?: string }[];
 }> {
   const { data: connections, error } = await supabaseAdmin
     .from("es_connections")
-    .select("id,user_id,endpoint,api_key,index_pattern,timestamp_field,ip_field,user_agent_field,detector_pack")
+    .select(
+      "id,user_id,endpoint,api_key,index_pattern,timestamp_field,ip_field,user_agent_field,detector_pack",
+    )
     .eq("is_active", true);
   if (error) throw new Error(error.message);
 
   const perConnection: { id: string; ok: boolean; threats: number; error?: string }[] = [];
-  let scanned = 0, failed = 0, newFindings = 0;
+  let scanned = 0,
+    failed = 0,
+    newFindings = 0;
 
   for (const conn of connections ?? []) {
     const detectors: Detector[] = ((conn.detector_pack as any)?.detectors ?? []) as Detector[];
-    if (!detectors.length) { perConnection.push({ id: conn.id, ok: true, threats: 0 }); continue; }
+    if (!detectors.length) {
+      perConnection.push({ id: conn.id, ok: true, threats: 0 });
+      continue;
+    }
     const auth: EsAuth = { endpoint: conn.endpoint, apiKey: conn.api_key };
     const schema = {
       timestamp_field: conn.timestamp_field,
@@ -82,12 +116,20 @@ export async function rescanAll(): Promise<{
     };
     try {
       const refreshed: Detector[] = [];
-      for (const d of detectors) refreshed.push(await runDetector(auth, conn.index_pattern, schema, d));
+      for (const d of detectors)
+        refreshed.push(await runDetector(auth, conn.index_pattern, schema, d));
       const threats = refreshed.reduce((s, d) => s + (d.match_count_clean ?? 0), 0);
 
       // Persist refreshed detector pack
-      const pack = { ...(conn.detector_pack as any), detectors: refreshed, last_rescan_at: new Date().toISOString() };
-      await supabaseAdmin.from("es_connections").update({ detector_pack: pack, updated_at: new Date().toISOString() }).eq("id", conn.id);
+      const pack = {
+        ...(conn.detector_pack as any),
+        detectors: refreshed,
+        last_rescan_at: new Date().toISOString(),
+      };
+      await supabaseAdmin
+        .from("es_connections")
+        .update({ detector_pack: pack, updated_at: new Date().toISOString() })
+        .eq("id", conn.id);
 
       // Emit threat_findings for high-confidence offenders so the UI shows new alerts
       for (const d of refreshed) {
@@ -104,7 +146,8 @@ export async function rescanAll(): Promise<{
             .eq("status", "open")
             .maybeSingle();
           if (existing) {
-            await supabaseAdmin.from("threat_findings")
+            await supabaseAdmin
+              .from("threat_findings")
               .update({ last_seen: new Date().toISOString(), request_count: o.eventCount })
               .eq("id", existing.id);
             continue;
@@ -118,7 +161,14 @@ export async function rescanAll(): Promise<{
             summary: `${o.classification} • confidence ${o.confidence}/100 — ${o.reasons.slice(0, 2).join("; ")}`,
             ip: o.ip,
             user_agent: o.sampleUserAgent,
-            evidence: { reasons: o.reasons, rdns: o.rdns, abuseScore: o.abuseScore, usageType: o.usageType, country: o.countryCode, rule: d.name },
+            evidence: {
+              reasons: o.reasons,
+              rdns: o.rdns,
+              abuseScore: o.abuseScore,
+              usageType: o.usageType,
+              country: o.countryCode,
+              rule: d.name,
+            },
             request_count: o.eventCount,
             first_seen: new Date().toISOString(),
             last_seen: new Date().toISOString(),
@@ -130,7 +180,12 @@ export async function rescanAll(): Promise<{
       perConnection.push({ id: conn.id, ok: true, threats });
       scanned++;
     } catch (e: any) {
-      perConnection.push({ id: conn.id, ok: false, threats: 0, error: e?.message ?? "scan failed" });
+      perConnection.push({
+        id: conn.id,
+        ok: false,
+        threats: 0,
+        error: e?.message ?? "scan failed",
+      });
       failed++;
     }
   }

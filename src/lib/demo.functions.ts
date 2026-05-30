@@ -43,7 +43,14 @@ const PERSONAS: Persona[] = [
     verdict: "suspicious",
     score: 74,
     reasons: ["honeypot_hit", "credential_stuff_path", "rapid_fire"],
-    ips: ["91.243.59.12", "91.243.59.13", "194.165.16.77", "194.165.16.78", "5.188.206.91", "45.143.221.44"],
+    ips: [
+      "91.243.59.12",
+      "91.243.59.13",
+      "194.165.16.77",
+      "194.165.16.78",
+      "5.188.206.91",
+      "45.143.221.44",
+    ],
     paths: ["/login", "/wp-login.php", "/admin/login", "/auth/signin"],
     countries: ["RU", "RU", "BY", "RU", "RU", "RU"],
     canvas_hash: "b22c...DEMO_CRED",
@@ -77,8 +84,12 @@ const PERSONAS: Persona[] = [
   },
 ];
 
-function randInt(min: number, max: number) { return Math.floor(Math.random() * (max - min + 1)) + min; }
-function pick<T>(arr: T[]): T { return arr[Math.floor(Math.random() * arr.length)]; }
+function randInt(min: number, max: number) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+function pick<T>(arr: T[]): T {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
 
 async function loadConn(supabase: any, userId: string) {
   const { data } = await supabase
@@ -96,7 +107,11 @@ export const loadDemo = createServerFn({ method: "POST" })
   .handler(async ({ context }) => {
     const { supabase, userId } = context;
     const conn = await loadConn(supabase, userId);
-    if (!conn) return { ok: false as const, error: "Connect an Elasticsearch cluster first (Connection tab)." };
+    if (!conn)
+      return {
+        ok: false as const,
+        error: "Connect an Elasticsearch cluster first (Connection tab).",
+      };
     const auth: EsAuth = { endpoint: conn.endpoint, apiKey: conn.api_key };
     await ensureChaffIndex(auth, userId);
 
@@ -146,24 +161,27 @@ export const loadDemo = createServerFn({ method: "POST" })
     // Seed bot_campaigns rows (so /app/campaigns lights up instantly)
     const botPersonas = PERSONAS.filter((p) => p.verdict !== "human");
     for (const p of botPersonas) {
-      await supabase.from("bot_campaigns").upsert({
-        user_id: userId,
-        signature_hash: p.signature_hash,
-        name: `DEMO · ${p.ua_family} (${p.reasons[0]})`,
-        fingerprint: {
-          ua_family: p.ua_family,
-          webgl_renderer: p.webgl_renderer,
-          canvas_hash: p.canvas_hash,
-          top_ip: p.ips[0],
-          top_reasons: p.reasons,
-          avg_score: p.score,
+      await supabase.from("bot_campaigns").upsert(
+        {
+          user_id: userId,
+          signature_hash: p.signature_hash,
+          name: `DEMO · ${p.ua_family} (${p.reasons[0]})`,
+          fingerprint: {
+            ua_family: p.ua_family,
+            webgl_renderer: p.webgl_renderer,
+            canvas_hash: p.canvas_hash,
+            top_ip: p.ips[0],
+            top_reasons: p.reasons,
+            avg_score: p.score,
+          },
+          ip_count: p.ips.length,
+          event_count: Math.round(150 / PERSONAS.length),
+          first_seen: new Date(now - 60 * 60 * 1000).toISOString(),
+          last_seen: new Date(now).toISOString(),
+          status: "active",
         },
-        ip_count: p.ips.length,
-        event_count: Math.round(150 / PERSONAS.length),
-        first_seen: new Date(now - 60 * 60 * 1000).toISOString(),
-        last_seen: new Date(now).toISOString(),
-        status: "active",
-      }, { onConflict: "user_id,signature_hash" });
+        { onConflict: "user_id,signature_hash" },
+      );
     }
 
     // Seed two threat findings
@@ -173,7 +191,8 @@ export const loadDemo = createServerFn({ method: "POST" })
         kind: "scraper",
         severity: "high",
         title: "DEMO · Headless Chrome scraper ring",
-        summary: "Coordinated scraping from a /24 in NL/DE hitting /products/* with no mouse entropy and Mesa Llvmpipe WebGL.",
+        summary:
+          "Coordinated scraping from a /24 in NL/DE hitting /products/* with no mouse entropy and Mesa Llvmpipe WebGL.",
         ip: "185.220.101.42",
         user_agent: PERSONAS[0].ua,
         request_count: 60,
@@ -187,7 +206,8 @@ export const loadDemo = createServerFn({ method: "POST" })
         kind: "credential-stuffing",
         severity: "critical",
         title: "DEMO · Credential stuffing wave on /login",
-        summary: "6 IPs from RU/BY hitting /login + /wp-login.php with rapid-fire pattern; honeypot bait paths also hit.",
+        summary:
+          "6 IPs from RU/BY hitting /login + /wp-login.php with rapid-fire pattern; honeypot bait paths also hit.",
         ip: "91.243.59.12",
         user_agent: PERSONAS[1].ua,
         request_count: 45,
@@ -216,9 +236,15 @@ export const clearDemo = createServerFn({ method: "POST" })
           body: { query: { term: { slug: DEMO_TAG } } },
         });
         esDeleted = res?.deleted ?? 0;
-      } catch (_e) { /* index may not exist */ }
+      } catch (_e) {
+        /* index may not exist */
+      }
     }
-    await supabase.from("bot_campaigns").delete().eq("user_id", userId).like("signature_hash", "demo:%");
+    await supabase
+      .from("bot_campaigns")
+      .delete()
+      .eq("user_id", userId)
+      .like("signature_hash", "demo:%");
     await supabase.from("threat_findings").delete().eq("user_id", userId).like("title", "DEMO ·%");
     return { ok: true as const, esDeleted };
   });
