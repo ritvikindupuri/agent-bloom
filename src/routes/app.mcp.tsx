@@ -44,7 +44,7 @@ function McpPage() {
         <div className="text-sm font-medium text-muted-foreground mb-2">Endpoint</div>
         <div className="flex gap-2">
           <code className="flex-1 rounded-md border border-border bg-background px-2.5 py-1.5 text-xs font-mono">{mcpUrl}</code>
-          <button onClick={() => { navigator.clipboard.writeText(mcpUrl); toast.success("Copied"); }} className="rounded-md border border-border px-2 hover:bg-accent"><Copy className="h-3.5 w-3.5" /></button>
+          <Hint label="Copy MCP endpoint URL"><button onClick={() => { navigator.clipboard.writeText(mcpUrl); toast.success("Copied"); }} className="rounded-md border border-border px-2 hover:bg-accent"><Copy className="h-3.5 w-3.5" /></button></Hint>
         </div>
         <div className="mt-4 text-xs text-muted-foreground">
           Tools exposed: <code className="text-foreground">is_known_bot</code> · <code className="text-foreground">list_recent_campaigns</code> · <code className="text-foreground">get_campaign</code> · <code className="text-foreground">lookup_fingerprint</code>
