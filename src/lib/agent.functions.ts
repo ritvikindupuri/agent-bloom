@@ -24,6 +24,45 @@ const tools: any[] = [
   {
     type: "function",
     function: {
+      name: "generate_executive_report",
+      description:
+        "Generates a structured, professional executive PDF report summarizing the current threat landscape, traffic metrics, and mitigation actions. Call this when the user asks for a report. You must provide a comprehensive executive summary, a conclusion, and details on active campaigns and threats.",
+      parameters: {
+        type: "object",
+        properties: {
+          title: { type: "string", description: "The title of the report." },
+          executive_summary: {
+            type: "string",
+            description:
+              "A high-level summary of the site's security posture over the last period.",
+          },
+          traffic_insights: {
+            type: "string",
+            description: "Key insights regarding human vs bot traffic.",
+          },
+          top_threats: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                name: { type: "string" },
+                description: { type: "string" },
+                severity: { type: "string" },
+              },
+            },
+          },
+          conclusion: {
+            type: "string",
+            description: "Concluding thoughts and recommended next steps.",
+          },
+        },
+        required: ["title", "executive_summary", "traffic_insights", "top_threats", "conclusion"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "search_logs",
       description:
         "Run an Elasticsearch DSL query against the user's log index. Returns aggregations and a sample of hits.",
@@ -188,6 +227,14 @@ async function runTool(
       aggregation: args.aggregation,
       total_hits: res?.hits?.total?.value ?? 0,
       buckets: annotated,
+    };
+  }
+
+  if (name === "generate_executive_report") {
+    // Return the payload so the frontend can render it as a PDF
+    return {
+      is_report: true,
+      report_data: args,
     };
   }
 

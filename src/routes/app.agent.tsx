@@ -15,6 +15,26 @@ import ReactMarkdown from "react-markdown";
 import { Bot, Send, Trash2, Plus, Sparkles, Wrench } from "lucide-react";
 import { toast } from "sonner";
 
+
+import { Download } from "lucide-react";
+import React, { Suspense } from "react";
+
+const ReportRenderer = React.lazy(() => import("@/components/pdf/ExecutiveReportPDF"));
+
+
+// Lazy load react-pdf to avoid SSR crashes with Node.js built-ins
+const PDFDownloadLink = React.lazy(() =>
+  import("@react-pdf/renderer").then((mod) => ({ default: mod.PDFDownloadLink })),
+);
+const Document = React.lazy(() =>
+  import("@react-pdf/renderer").then((m) => ({ default: m.Document })),
+);
+const Page = React.lazy(() => import("@react-pdf/renderer").then((m) => ({ default: m.Page })));
+const Text = React.lazy(() => import("@react-pdf/renderer").then((m) => ({ default: m.Text })));
+const View = React.lazy(() => import("@react-pdf/renderer").then((m) => ({ default: m.View })));
+
+// Registering fonts inside a client-only effect
+
 export const Route = createFileRoute("/app/agent")({
   component: AgentPage,
 });
@@ -24,6 +44,7 @@ const SUGGESTIONS = [
   "Find the most suspicious IPs from today.",
   "Are any clients masquerading as Googlebot?",
   "Investigate any unusual spikes in the last 24h.",
+  "Generate an executive report for the last 24 hours.",
 ];
 
 function AgentPage() {
@@ -216,8 +237,27 @@ function MessageBubble({ message }: { message: any }) {
       </div>
     );
   }
+
   if (message.role === "tool") {
     const r = message.tool_result;
+
+    if (r?.is_report && r?.report_data) {
+      return (
+        <div className="rounded-xl border border-primary/30 bg-primary/5 p-5 flex flex-col gap-3 max-w-md shadow-sm">
+          <div className="flex items-center gap-2">
+            <Bot className="h-5 w-5 text-primary" />
+            <h4 className="font-display text-base font-medium">Executive Report Ready</h4>
+          </div>
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            I've compiled the security data into a formal, downloadable PDF report.
+          </p>
+          <Suspense fallback={<Button disabled>Loading PDF Engine...</Button>}>
+            <ReportRenderer data={r.report_data} />
+          </Suspense>
+        </div>
+      );
+    }
+
     return (
       <details className="rounded-lg border border-border bg-surface/30 text-xs">
         <summary className="cursor-pointer select-none flex items-center gap-2 px-3 py-2 text-muted-foreground hover:text-foreground">
