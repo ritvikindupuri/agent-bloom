@@ -184,24 +184,70 @@ Generate the detector pack.`;
   return (out?.detectors ?? []) as Detector[];
 }
 
-async function dryRunDetectors(
+async function dryRunAndEnrichDetectors(
   auth: EsAuth,
   indexPattern: string,
-  tsField: string,
+  schema: DetectedSchema,
   detectors: Detector[],
 ): Promise<Detector[]> {
+  const tsField = schema.timestamp_field;
+  const ipField = schema.ip_field;
+  const uaField = schema.user_agent_field;
+  const ipKw = `${ipField}.keyword`;
   const out: Detector[] = [];
   for (const d of detectors) {
     try {
-      // Wrap the bool body with a time range, run count
       const inner = d.es_query?.bool ?? d.es_query;
       const filters = Array.isArray(inner?.filter) ? [...inner.filter] : (inner?.filter ? [inner.filter] : []);
       filters.push({ range: { [tsField]: { gte: "now-24h", lte: "now" } } });
-      const body = { query: { bool: { ...inner, filter: filters } } };
-      const r: any = await esRequest(auth, `/${encodeURIComponent(indexPattern)}/_count`, { method: "POST", body });
-      out.push({ ...d, match_count: r?.count ?? 0 });
+      // Search + terms agg on IP to get top offenders, with a top_hits sub-agg for sample UA.
+      const body = {
+        size: 0,
+        query: { bool: { ...inner, filter: filters } },
+        track_total_hits: true,
+        aggs: {
+          top_ips: {
+            terms: { field: ipKw, size: 10, missing: "unknown" },
+            aggs: {
+              sample: { top_hits: { size: 1, _source: [uaField] } },
+            },
+          },
+          // Fallback to non-keyword IP if .keyword isn't mapped.
+          top_ips_raw: {
+            terms: { field: ipField, size: 10, missing: "unknown" },
+          },
+        },
+      };
+      const r: any = await esRequest(auth, `/${encodeURIComponent(indexPattern)}/_search`, { method: "POST", body });
+      const total = r?.hits?.total?.value ?? r?.hits?.total ?? 0;
+      const buckets: any[] = r?.aggregations?.top_ips?.buckets?.length
+        ? r.aggregations.top_ips.buckets
+        : (r?.aggregations?.top_ips_raw?.buckets ?? []);
+      const inputs = buckets
+        .filter((b) => b.key && b.key !== "unknown")
+        .map((b) => {
+          const hit = b.sample?.hits?.hits?.[0]?._source;
+          let ua: string | null = null;
+          if (hit) {
+            // walk nested path for UA
+            ua = uaField.split(".").reduce((acc: any, k) => acc?.[k], hit) ?? null;
+          }
+          return { ip: String(b.key), eventCount: b.doc_count as number, sampleUserAgent: ua };
+        });
+      const enriched = await enrichIps(inputs);
+      const offenders: Offender[] = enriched.map((e) => {
+        const m = inputs.find((i) => i.ip === e.ip)!;
+        return { ...e, eventCount: m.eventCount, sampleUserAgent: m.sampleUserAgent };
+      }).sort((a, b) => b.confidence - a.confidence || b.eventCount - a.eventCount);
+
+      const verifiedEvents = offenders
+        .filter((o) => o.classification === "verified_bot")
+        .reduce((s, o) => s + o.eventCount, 0);
+      const cleanMatches = Math.max(0, total - verifiedEvents);
+
+      out.push({ ...d, match_count: total, match_count_clean: cleanMatches, offenders });
     } catch {
-      out.push({ ...d, match_count: 0 });
+      out.push({ ...d, match_count: 0, match_count_clean: 0, offenders: [] });
     }
   }
   return out;
