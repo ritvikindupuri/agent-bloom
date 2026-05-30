@@ -352,9 +352,11 @@ function BlocklistExport() {
   const text = data ? data[tab] : "";
   return (
     <>
-      <Button variant="outline" size="sm" onClick={() => setOpen(true)} className="gap-2">
-        <Download className="h-3.5 w-3.5" /> Export blocklist
-      </Button>
+      <Hint label="Export the IPs flagged by your detectors as a drop-in blocklist for nginx, Cloudflare, or iptables.">
+        <Button variant="outline" size="sm" onClick={() => setOpen(true)} className="gap-2">
+          <Download className="h-3.5 w-3.5" /> Export blocklist
+        </Button>
+      </Hint>
       {open && (
         <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setOpen(false)}>
           <Card className="bg-surface border-border p-5 max-w-3xl w-full max-h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
