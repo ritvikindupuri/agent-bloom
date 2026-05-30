@@ -69,7 +69,14 @@ function LoginPage() {
         <div className="relative text-xs text-muted-foreground">© Chaff</div>
       </div>
 
-      <div className="flex-1 flex items-center justify-center p-6">
+      <div className="flex-1 flex items-center justify-center p-6 relative">
+        <Link
+          to="/"
+          className="absolute top-5 left-5 inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-surface/60 transition"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          Back to home
+        </Link>
         <div className="w-full max-w-sm">
           <div className="lg:hidden mb-8 flex justify-center">
             <Logo className="h-6 w-6" withWordmark />
