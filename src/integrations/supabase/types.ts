@@ -134,6 +134,8 @@ export type Database = {
         Row: {
           api_key: string
           created_at: string
+          detector_pack: Json | null
+          detectors_generated_at: string | null
           endpoint: string
           id: string
           index_pattern: string
@@ -142,6 +144,9 @@ export type Database = {
           label: string
           last_test_ok: boolean | null
           last_tested_at: string | null
+          schema_detected_at: string | null
+          site_recon: Json | null
+          site_url: string | null
           status_field: string
           timestamp_field: string
           updated_at: string
@@ -152,6 +157,8 @@ export type Database = {
         Insert: {
           api_key: string
           created_at?: string
+          detector_pack?: Json | null
+          detectors_generated_at?: string | null
           endpoint: string
           id?: string
           index_pattern?: string
@@ -160,6 +167,9 @@ export type Database = {
           label?: string
           last_test_ok?: boolean | null
           last_tested_at?: string | null
+          schema_detected_at?: string | null
+          site_recon?: Json | null
+          site_url?: string | null
           status_field?: string
           timestamp_field?: string
           updated_at?: string
@@ -170,6 +180,8 @@ export type Database = {
         Update: {
           api_key?: string
           created_at?: string
+          detector_pack?: Json | null
+          detectors_generated_at?: string | null
           endpoint?: string
           id?: string
           index_pattern?: string
@@ -178,6 +190,9 @@ export type Database = {
           label?: string
           last_test_ok?: boolean | null
           last_tested_at?: string | null
+          schema_detected_at?: string | null
+          site_recon?: Json | null
+          site_url?: string | null
           status_field?: string
           timestamp_field?: string
           updated_at?: string

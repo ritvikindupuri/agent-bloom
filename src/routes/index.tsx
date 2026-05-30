@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Logo } from "@/components/Logo";
-import { ArrowRight, Bot, Database, Sparkles, Shield, Activity } from "lucide-react";
+import { ArrowRight, Bot, Database, Sparkles, Shield, Activity, Globe } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   component: Landing,
@@ -33,8 +33,7 @@ function Landing() {
               <span className="italic text-muted-foreground">chaff behind.</span>
             </h1>
             <p className="mx-auto mt-6 max-w-xl text-base text-muted-foreground md:text-lg">
-              An autonomous agent that hunts bots in your traffic — fingerprints them,
-              clusters the campaign, and tells you who to block.
+              Paste your URL and connect Elasticsearch. Our agent reads your site, writes a bot-detection pack tailored to your exact routes, and starts hunting. No snippet. No install.
             </p>
             <div className="mt-10 flex items-center justify-center gap-3">
               <Link to="/login" className="group inline-flex items-center gap-2 rounded-md bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90 transition">
@@ -50,9 +49,9 @@ function Landing() {
         <section id="how" className="border-t border-border/60 bg-surface/30">
           <div className="mx-auto grid max-w-6xl gap-px bg-border/60 px-0 md:grid-cols-3">
             {[
-              { icon: Database, title: "Connect your logs", body: "Bring your Elasticsearch endpoint and API key. Credentials stay encrypted and isolated to your account." },
-              { icon: Bot, title: "Ask the agent", body: "Gemini calls real tools — search, aggregate, sample — to investigate your traffic. No hallucinated numbers." },
-              { icon: Shield, title: "Act on evidence", body: "Recorded threats include the offending IPs, user-agents, and request counts. Review, dismiss, or mark blocked." },
+              { icon: Globe, title: "Paste your URL", body: "Firecrawl scans your site — detects your stack, login pages, API surface, and admin paths. Recon, not guesswork." },
+              { icon: Database, title: "Connect Elasticsearch", body: "We sample one log document and auto-map the schema. No field-picking, no manual config. ECS or custom — it just works." },
+              { icon: Shield, title: "Get a custom detector pack", body: "The agent writes 4–6 ES rules tailored to YOUR routes — credential stuffing on your real login, scraping on your real APIs. Live in 30 seconds." },
             ].map((f) => (
               <div key={f.title} className="bg-background p-8">
                 <f.icon className="h-5 w-5 text-primary" />
@@ -101,12 +100,12 @@ function Landing() {
 
         <section className="border-t border-border/60 bg-surface/30">
           <div className="mx-auto max-w-4xl px-6 py-24 text-center">
-            <h2 className="font-display text-4xl tracking-tight md:text-5xl">No logs yet? Start before the first visitor.</h2>
+            <h2 className="font-display text-4xl tracking-tight md:text-5xl">Two inputs. No install. Built for security teams.</h2>
             <p className="mx-auto mt-3 max-w-md text-muted-foreground">
-              Paste your URL. We fingerprint your stack, map your attack surface, and hand back the exact one-line install. The agent starts hunting the moment real traffic flows.
+              Every other tool ships generic bot rules. Chaff reads your site first, then writes detection rules that target your actual attack surface.
             </p>
             <Link to="/login" className="mt-8 inline-flex items-center gap-2 rounded-md bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90 transition">
-              Get started <ArrowRight className="h-4 w-4" />
+              Activate Chaff <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
         </section>
