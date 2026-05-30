@@ -14,6 +14,7 @@ import { Route as AppRouteImport } from './routes/app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as TrapSlugRouteImport } from './routes/trap.$slug'
 import { Route as AppThreatsRouteImport } from './routes/app.threats'
+import { Route as AppOnboardRouteImport } from './routes/app.onboard'
 import { Route as AppMcpRouteImport } from './routes/app.mcp'
 import { Route as AppHoneypotsRouteImport } from './routes/app.honeypots'
 import { Route as AppHarvestRouteImport } from './routes/app.harvest'
@@ -48,6 +49,11 @@ const TrapSlugRoute = TrapSlugRouteImport.update({
 const AppThreatsRoute = AppThreatsRouteImport.update({
   id: '/threats',
   path: '/threats',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppOnboardRoute = AppOnboardRouteImport.update({
+  id: '/onboard',
+  path: '/onboard',
   getParentRoute: () => AppRoute,
 } as any)
 const AppMcpRoute = AppMcpRouteImport.update({
@@ -113,6 +119,7 @@ export interface FileRoutesByFullPath {
   '/app/harvest': typeof AppHarvestRoute
   '/app/honeypots': typeof AppHoneypotsRoute
   '/app/mcp': typeof AppMcpRoute
+  '/app/onboard': typeof AppOnboardRoute
   '/app/threats': typeof AppThreatsRoute
   '/trap/$slug': typeof TrapSlugRoute
   '/api/public/beacon': typeof ApiPublicBeaconRoute
@@ -130,6 +137,7 @@ export interface FileRoutesByTo {
   '/app/harvest': typeof AppHarvestRoute
   '/app/honeypots': typeof AppHoneypotsRoute
   '/app/mcp': typeof AppMcpRoute
+  '/app/onboard': typeof AppOnboardRoute
   '/app/threats': typeof AppThreatsRoute
   '/trap/$slug': typeof TrapSlugRoute
   '/api/public/beacon': typeof ApiPublicBeaconRoute
@@ -148,6 +156,7 @@ export interface FileRoutesById {
   '/app/harvest': typeof AppHarvestRoute
   '/app/honeypots': typeof AppHoneypotsRoute
   '/app/mcp': typeof AppMcpRoute
+  '/app/onboard': typeof AppOnboardRoute
   '/app/threats': typeof AppThreatsRoute
   '/trap/$slug': typeof TrapSlugRoute
   '/api/public/beacon': typeof ApiPublicBeaconRoute
@@ -167,6 +176,7 @@ export interface FileRouteTypes {
     | '/app/harvest'
     | '/app/honeypots'
     | '/app/mcp'
+    | '/app/onboard'
     | '/app/threats'
     | '/trap/$slug'
     | '/api/public/beacon'
@@ -184,6 +194,7 @@ export interface FileRouteTypes {
     | '/app/harvest'
     | '/app/honeypots'
     | '/app/mcp'
+    | '/app/onboard'
     | '/app/threats'
     | '/trap/$slug'
     | '/api/public/beacon'
@@ -201,6 +212,7 @@ export interface FileRouteTypes {
     | '/app/harvest'
     | '/app/honeypots'
     | '/app/mcp'
+    | '/app/onboard'
     | '/app/threats'
     | '/trap/$slug'
     | '/api/public/beacon'
@@ -251,6 +263,13 @@ declare module '@tanstack/react-router' {
       path: '/threats'
       fullPath: '/app/threats'
       preLoaderRoute: typeof AppThreatsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/onboard': {
+      id: '/app/onboard'
+      path: '/onboard'
+      fullPath: '/app/onboard'
+      preLoaderRoute: typeof AppOnboardRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/mcp': {
@@ -346,6 +365,7 @@ interface AppRouteChildren {
   AppHarvestRoute: typeof AppHarvestRoute
   AppHoneypotsRoute: typeof AppHoneypotsRoute
   AppMcpRoute: typeof AppMcpRoute
+  AppOnboardRoute: typeof AppOnboardRoute
   AppThreatsRoute: typeof AppThreatsRoute
 }
 
@@ -357,6 +377,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppHarvestRoute: AppHarvestRoute,
   AppHoneypotsRoute: AppHoneypotsRoute,
   AppMcpRoute: AppMcpRoute,
+  AppOnboardRoute: AppOnboardRoute,
   AppThreatsRoute: AppThreatsRoute,
 }
 
@@ -373,3 +394,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
