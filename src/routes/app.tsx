@@ -59,15 +59,16 @@ function AppLayout() {
           {NAV.map((n) => {
             const active = pathname.startsWith(n.to);
             return (
-              <Link
-                key={n.to}
-                to={n.to}
-                className={`flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition ${
-                  active ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
-                }`}
-              >
-                <n.icon className="h-4 w-4" />{n.label}
-              </Link>
+              <Hint key={n.to} label={n.hint} side="right">
+                <Link
+                  to={n.to}
+                  className={`flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition ${
+                    active ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
+                  }`}
+                >
+                  <n.icon className="h-4 w-4" />{n.label}
+                </Link>
+              </Hint>
             );
           })}
         </nav>
