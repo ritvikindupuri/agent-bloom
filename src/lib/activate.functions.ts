@@ -400,6 +400,60 @@ export const getActivation = createServerFn({ method: "GET" })
     return { connection: data };
   });
 
+// List every saved session for this user (active + archived history).
+export const listSessions = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context;
+    const { data, error } = await supabase
+      .from("es_connections")
+      .select("id,label,site_url,index_pattern,is_active,created_at,detector_pack")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false });
+    if (error) throw new Error(error.message);
+    return {
+      sessions: (data ?? []).map((r: any) => ({
+        id: r.id as string,
+        label: r.label as string,
+        site_url: (r.site_url as string | null) ?? null,
+        index_pattern: r.index_pattern as string,
+        is_active: r.is_active as boolean,
+        created_at: r.created_at as string,
+        detector_count: ((r.detector_pack as any)?.detectors?.length ?? 0) as number,
+      })),
+    };
+  });
+
+// Clear the current session — archive it (is_active=false). It stays in history.
+export const clearSession = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context;
+    const { error } = await supabase
+      .from("es_connections")
+      .update({ is_active: false })
+      .eq("user_id", userId)
+      .eq("is_active", true);
+    if (error) throw new Error(error.message);
+    return { ok: true as const };
+  });
+
+// Restore an archived session — make it active again (deactivates others).
+export const restoreSession = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(z.object({ id: z.string().uuid() }).parse)
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    await supabase.from("es_connections").update({ is_active: false }).eq("user_id", userId);
+    const { error } = await supabase
+      .from("es_connections")
+      .update({ is_active: true, updated_at: new Date().toISOString() })
+      .eq("user_id", userId)
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true as const };
+  });
+
 // Build a deployable blocklist (nginx / Cloudflare / iptables) from the top
 // malicious + suspicious offenders across all detectors. Verified bots are
 // always excluded.
