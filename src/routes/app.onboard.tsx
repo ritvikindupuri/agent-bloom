@@ -245,16 +245,19 @@ function OnboardPage() {
           </Card>
 
           <Card className="bg-surface/40 border-border p-6">
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
               <div>
                 <div className="text-xs uppercase tracking-wider text-muted-foreground mb-1 flex items-center gap-2">
                   <Crosshair className="h-3.5 w-3.5" /> Custom detector pack
                 </div>
                 <h3 className="font-display text-2xl">{result.detectors.length} rules written for {new URL(result.recon.url).hostname}</h3>
               </div>
-              <Link to="/app/dashboard" className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline">
-                Open live console <ArrowRight className="h-3.5 w-3.5" />
-              </Link>
+              <div className="flex items-center gap-2">
+                <BlocklistExport />
+                <Link to="/app/dashboard" className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline">
+                  Open live console <ArrowRight className="h-3.5 w-3.5" />
+                </Link>
+              </div>
             </div>
             <div className="space-y-2">
               {result.detectors.map((d) => <DetectorRow key={d.id} d={d} />)}
@@ -266,8 +269,11 @@ function OnboardPage() {
       {/* Existing activation summary if already live */}
       {!result && live && live.detector_pack && (
         <Card className="bg-surface/40 border-border p-6">
-          <div className="text-xs uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-2">
-            <Crosshair className="h-3.5 w-3.5" /> Active detector pack
+          <div className="flex items-center justify-between mb-3 gap-3 flex-wrap">
+            <div className="text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+              <Crosshair className="h-3.5 w-3.5" /> Active detector pack
+            </div>
+            <BlocklistExport />
           </div>
           <div className="space-y-2">
             {(((live.detector_pack as any)?.detectors ?? []) as Detector[]).map((d) => <DetectorRow key={d.id} d={d} />)}
@@ -278,6 +284,63 @@ function OnboardPage() {
         </Card>
       )}
     </div>
+  );
+}
+
+function BlocklistExport() {
+  const fn = useServerFn(getBlocklist);
+  const [open, setOpen] = useState(false);
+  const [tab, setTab] = useState<"nginx" | "cloudflare" | "iptables">("nginx");
+  const q = useQuery({ queryKey: ["blocklist"], queryFn: () => fn(), enabled: open });
+  const data: any = q.data;
+  const text = data ? data[tab] : "";
+  return (
+    <>
+      <Button variant="outline" size="sm" onClick={() => setOpen(true)} className="gap-2">
+        <Download className="h-3.5 w-3.5" /> Export blocklist
+      </Button>
+      {open && (
+        <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setOpen(false)}>
+          <Card className="bg-surface border-border p-5 max-w-3xl w-full max-h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <h3 className="font-display text-xl">Deployable blocklist</h3>
+                <p className="text-xs text-muted-foreground">
+                  {data ? `${data.count} IPs · confidence ≥ 40 · verified bots excluded` : "Loading…"}
+                </p>
+              </div>
+              <div className="flex gap-1">
+                {(["nginx", "cloudflare", "iptables"] as const).map((t) => (
+                  <button
+                    key={t}
+                    onClick={() => setTab(t)}
+                    className={`px-2.5 py-1 text-xs rounded border ${tab === t ? "border-primary text-primary bg-primary/10" : "border-border text-muted-foreground"}`}
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <pre className="flex-1 overflow-auto font-mono text-[11px] bg-background/60 rounded p-3 border border-border">
+              {q.isLoading ? "Generating…" : text || "No blockable offenders yet."}
+            </pre>
+            <div className="mt-3 flex justify-end gap-2">
+              <Button variant="ghost" size="sm" onClick={() => setOpen(false)}>Close</Button>
+              <Button
+                size="sm"
+                disabled={!text}
+                onClick={() => {
+                  navigator.clipboard.writeText(text);
+                  toast.success("Copied to clipboard");
+                }}
+              >
+                Copy
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
+    </>
   );
 }
 
