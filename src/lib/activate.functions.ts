@@ -5,6 +5,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 import { scanUrl } from "./onboard.server";
 import { esPing, esRequest, esSearch, type EsAuth } from "./es.server";
+import { enrichIps, type IpEnrichment } from "./ip-intel.server";
 
 const AI_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
 const MODEL = "google/gemini-2.5-flash";
@@ -18,6 +19,8 @@ type DetectedSchema = {
   notes?: string;
 };
 
+type Offender = IpEnrichment & { eventCount: number; sampleUserAgent: string | null };
+
 type Detector = {
   id: string;
   name: string;
@@ -25,7 +28,9 @@ type Detector = {
   severity: "low" | "medium" | "high" | "critical";
   target_path?: string;
   es_query: any; // ES bool query body
-  match_count?: number; // populated after dry run
+  match_count?: number;             // total raw matches
+  match_count_clean?: number;       // excluding verified bots
+  offenders?: Offender[];           // top enriched IPs
 };
 
 async function callAI(messages: any[], responseSchema?: any): Promise<any> {
@@ -179,24 +184,70 @@ Generate the detector pack.`;
   return (out?.detectors ?? []) as Detector[];
 }
 
-async function dryRunDetectors(
+async function dryRunAndEnrichDetectors(
   auth: EsAuth,
   indexPattern: string,
-  tsField: string,
+  schema: DetectedSchema,
   detectors: Detector[],
 ): Promise<Detector[]> {
+  const tsField = schema.timestamp_field;
+  const ipField = schema.ip_field;
+  const uaField = schema.user_agent_field;
+  const ipKw = `${ipField}.keyword`;
   const out: Detector[] = [];
   for (const d of detectors) {
     try {
-      // Wrap the bool body with a time range, run count
       const inner = d.es_query?.bool ?? d.es_query;
       const filters = Array.isArray(inner?.filter) ? [...inner.filter] : (inner?.filter ? [inner.filter] : []);
       filters.push({ range: { [tsField]: { gte: "now-24h", lte: "now" } } });
-      const body = { query: { bool: { ...inner, filter: filters } } };
-      const r: any = await esRequest(auth, `/${encodeURIComponent(indexPattern)}/_count`, { method: "POST", body });
-      out.push({ ...d, match_count: r?.count ?? 0 });
+      // Search + terms agg on IP to get top offenders, with a top_hits sub-agg for sample UA.
+      const body = {
+        size: 0,
+        query: { bool: { ...inner, filter: filters } },
+        track_total_hits: true,
+        aggs: {
+          top_ips: {
+            terms: { field: ipKw, size: 10, missing: "unknown" },
+            aggs: {
+              sample: { top_hits: { size: 1, _source: [uaField] } },
+            },
+          },
+          // Fallback to non-keyword IP if .keyword isn't mapped.
+          top_ips_raw: {
+            terms: { field: ipField, size: 10, missing: "unknown" },
+          },
+        },
+      };
+      const r: any = await esRequest(auth, `/${encodeURIComponent(indexPattern)}/_search`, { method: "POST", body });
+      const total = r?.hits?.total?.value ?? r?.hits?.total ?? 0;
+      const buckets: any[] = r?.aggregations?.top_ips?.buckets?.length
+        ? r.aggregations.top_ips.buckets
+        : (r?.aggregations?.top_ips_raw?.buckets ?? []);
+      const inputs = buckets
+        .filter((b) => b.key && b.key !== "unknown")
+        .map((b) => {
+          const hit = b.sample?.hits?.hits?.[0]?._source;
+          let ua: string | null = null;
+          if (hit) {
+            // walk nested path for UA
+            ua = uaField.split(".").reduce((acc: any, k) => acc?.[k], hit) ?? null;
+          }
+          return { ip: String(b.key), eventCount: b.doc_count as number, sampleUserAgent: ua };
+        });
+      const enriched = await enrichIps(inputs);
+      const offenders: Offender[] = enriched.map((e) => {
+        const m = inputs.find((i) => i.ip === e.ip)!;
+        return { ...e, eventCount: m.eventCount, sampleUserAgent: m.sampleUserAgent };
+      }).sort((a, b) => b.confidence - a.confidence || b.eventCount - a.eventCount);
+
+      const verifiedEvents = offenders
+        .filter((o) => o.classification === "verified_bot")
+        .reduce((s, o) => s + o.eventCount, 0);
+      const cleanMatches = Math.max(0, total - verifiedEvents);
+
+      out.push({ ...d, match_count: total, match_count_clean: cleanMatches, offenders });
     } catch {
-      out.push({ ...d, match_count: 0 });
+      out.push({ ...d, match_count: 0, match_count_clean: 0, offenders: [] });
     }
   }
   return out;
@@ -276,12 +327,18 @@ export const activate = createServerFn({ method: "POST" })
       return { ok: false as const, error: `Detector generation: ${e?.message ?? "failed"}`, steps, recon };
     }
 
-    // 5. Dry-run against the last 24h so we can show counts immediately
+    // 5. Dry-run + IP enrichment (rDNS, verified-bot allowlist, confidence scoring)
     let withCounts = detectors;
     if (sample) {
-      withCounts = await dryRunDetectors(auth, data.indexPattern, schema.timestamp_field, detectors);
-      const totalMatches = withCounts.reduce((s, d) => s + (d.match_count ?? 0), 0);
-      steps.push({ name: "Backtest on last 24h", ok: true, detail: `${totalMatches.toLocaleString()} suspicious events flagged` });
+      withCounts = await dryRunAndEnrichDetectors(auth, data.indexPattern, schema, detectors);
+      const totalClean = withCounts.reduce((s, d) => s + (d.match_count_clean ?? d.match_count ?? 0), 0);
+      const verifiedExcluded = withCounts.reduce((s, d) => s + ((d.match_count ?? 0) - (d.match_count_clean ?? d.match_count ?? 0)), 0);
+      const malicious = withCounts.reduce((s, d) => s + (d.offenders?.filter((o) => o.classification === "malicious").length ?? 0), 0);
+      steps.push({
+        name: "Enrich offenders + verify bots",
+        ok: true,
+        detail: `${totalClean.toLocaleString()} confirmed threats • ${verifiedExcluded.toLocaleString()} verified-bot events excluded • ${malicious} high-confidence malicious IPs`,
+      });
     }
 
     // 6. Save everything to es_connections (deactivate others first)
@@ -341,4 +398,58 @@ export const getActivation = createServerFn({ method: "GET" })
       .maybeSingle();
     if (error) throw new Error(error.message);
     return { connection: data };
+  });
+
+// Build a deployable blocklist (nginx / Cloudflare / iptables) from the top
+// malicious + suspicious offenders across all detectors. Verified bots are
+// always excluded.
+export const getBlocklist = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context;
+    const { data } = await supabase
+      .from("es_connections")
+      .select("label,detector_pack")
+      .eq("user_id", userId)
+      .eq("is_active", true)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const detectors: Detector[] = ((data?.detector_pack as any)?.detectors ?? []);
+    const map = new Map<string, { ip: string; confidence: number; events: number; reasons: string[]; rules: Set<string> }>();
+    for (const d of detectors) {
+      for (const o of d.offenders ?? []) {
+        if (o.classification === "verified_bot" || o.classification === "benign") continue;
+        if (o.confidence < 40) continue;
+        const cur = map.get(o.ip) ?? { ip: o.ip, confidence: 0, events: 0, reasons: [], rules: new Set<string>() };
+        cur.confidence = Math.max(cur.confidence, o.confidence);
+        cur.events += o.eventCount;
+        cur.reasons = Array.from(new Set([...cur.reasons, ...o.reasons]));
+        cur.rules.add(d.name);
+        map.set(o.ip, cur);
+      }
+    }
+    const offenders = Array.from(map.values()).sort((a, b) => b.confidence - a.confidence || b.events - a.events);
+    const host = data?.label ?? "chaff";
+    const date = new Date().toISOString();
+    const header = `# Chaff blocklist for ${host} — generated ${date}\n# ${offenders.length} IPs (confidence ≥ 40, verified bots excluded)`;
+
+    const nginx = [
+      header,
+      "# Drop into nginx http {} block:",
+      ...offenders.map((o) => `deny ${o.ip};  # confidence=${o.confidence} events=${o.events} rules=${Array.from(o.rules).join("|")}`),
+    ].join("\n");
+
+    const cloudflare = [
+      header,
+      "# Cloudflare IP Access Rules (one per line, mode=block, scope=zone):",
+      ...offenders.map((o) => o.ip),
+    ].join("\n");
+
+    const iptables = [
+      header,
+      ...offenders.map((o) => `iptables -A INPUT -s ${o.ip} -j DROP  # ${o.confidence}`),
+    ].join("\n");
+
+    return { host, count: offenders.length, offenders, nginx, cloudflare, iptables };
   });

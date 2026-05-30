@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
-import { activate, getActivation } from "@/lib/activate.functions";
+import { activate, getActivation, getBlocklist } from "@/lib/activate.functions";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -10,17 +10,33 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import {
   Globe, Database, Sparkles, Loader2, CheckCircle2, XCircle,
-  ShieldAlert, Zap, ArrowRight, Eye, EyeOff, Crosshair,
+  ShieldAlert, Zap, ArrowRight, Eye, EyeOff, Crosshair, Download,
+  ShieldCheck, AlertTriangle, HelpCircle,
 } from "lucide-react";
 
 export const Route = createFileRoute("/app/onboard")({
   component: OnboardPage,
 });
 
+type Offender = {
+  ip: string;
+  rdns: string | null;
+  verifiedBot: string | null;
+  isDatacenter: boolean;
+  isTor: boolean;
+  confidence: number;
+  classification: "verified_bot" | "malicious" | "suspicious" | "benign" | "unknown";
+  reasons: string[];
+  eventCount: number;
+  sampleUserAgent: string | null;
+};
+
 type Detector = {
   id: string; name: string; rationale: string;
   severity: "low" | "medium" | "high" | "critical";
-  target_path?: string; es_query: any; match_count?: number;
+  target_path?: string; es_query: any;
+  match_count?: number; match_count_clean?: number;
+  offenders?: Offender[];
 };
 
 const sevColor: Record<string, string> = {
@@ -28,6 +44,14 @@ const sevColor: Record<string, string> = {
   medium: "bg-amber-500/10 text-amber-400 border-amber-500/30",
   high: "bg-orange-500/10 text-orange-400 border-orange-500/30",
   critical: "bg-red-500/10 text-red-400 border-red-500/30",
+};
+
+const classBadge: Record<Offender["classification"], { cls: string; icon: any; label: string }> = {
+  verified_bot: { cls: "bg-emerald-500/10 text-emerald-400 border-emerald-500/30", icon: ShieldCheck, label: "Verified bot" },
+  malicious:    { cls: "bg-red-500/10 text-red-400 border-red-500/30", icon: AlertTriangle, label: "Malicious" },
+  suspicious:   { cls: "bg-orange-500/10 text-orange-400 border-orange-500/30", icon: ShieldAlert, label: "Suspicious" },
+  unknown:      { cls: "bg-muted text-muted-foreground border-border", icon: HelpCircle, label: "Unknown" },
+  benign:       { cls: "bg-blue-500/10 text-blue-400 border-blue-500/30", icon: ShieldCheck, label: "Benign" },
 };
 
 function OnboardPage() {
@@ -221,16 +245,19 @@ function OnboardPage() {
           </Card>
 
           <Card className="bg-surface/40 border-border p-6">
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
               <div>
                 <div className="text-xs uppercase tracking-wider text-muted-foreground mb-1 flex items-center gap-2">
                   <Crosshair className="h-3.5 w-3.5" /> Custom detector pack
                 </div>
                 <h3 className="font-display text-2xl">{result.detectors.length} rules written for {new URL(result.recon.url).hostname}</h3>
               </div>
-              <Link to="/app/dashboard" className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline">
-                Open live console <ArrowRight className="h-3.5 w-3.5" />
-              </Link>
+              <div className="flex items-center gap-2">
+                <BlocklistExport />
+                <Link to="/app/dashboard" className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline">
+                  Open live console <ArrowRight className="h-3.5 w-3.5" />
+                </Link>
+              </div>
             </div>
             <div className="space-y-2">
               {result.detectors.map((d) => <DetectorRow key={d.id} d={d} />)}
@@ -242,8 +269,11 @@ function OnboardPage() {
       {/* Existing activation summary if already live */}
       {!result && live && live.detector_pack && (
         <Card className="bg-surface/40 border-border p-6">
-          <div className="text-xs uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-2">
-            <Crosshair className="h-3.5 w-3.5" /> Active detector pack
+          <div className="flex items-center justify-between mb-3 gap-3 flex-wrap">
+            <div className="text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+              <Crosshair className="h-3.5 w-3.5" /> Active detector pack
+            </div>
+            <BlocklistExport />
           </div>
           <div className="space-y-2">
             {(((live.detector_pack as any)?.detectors ?? []) as Detector[]).map((d) => <DetectorRow key={d.id} d={d} />)}
@@ -257,8 +287,68 @@ function OnboardPage() {
   );
 }
 
+function BlocklistExport() {
+  const fn = useServerFn(getBlocklist);
+  const [open, setOpen] = useState(false);
+  const [tab, setTab] = useState<"nginx" | "cloudflare" | "iptables">("nginx");
+  const q = useQuery({ queryKey: ["blocklist"], queryFn: () => fn(), enabled: open });
+  const data: any = q.data;
+  const text = data ? data[tab] : "";
+  return (
+    <>
+      <Button variant="outline" size="sm" onClick={() => setOpen(true)} className="gap-2">
+        <Download className="h-3.5 w-3.5" /> Export blocklist
+      </Button>
+      {open && (
+        <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setOpen(false)}>
+          <Card className="bg-surface border-border p-5 max-w-3xl w-full max-h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <h3 className="font-display text-xl">Deployable blocklist</h3>
+                <p className="text-xs text-muted-foreground">
+                  {data ? `${data.count} IPs · confidence ≥ 40 · verified bots excluded` : "Loading…"}
+                </p>
+              </div>
+              <div className="flex gap-1">
+                {(["nginx", "cloudflare", "iptables"] as const).map((t) => (
+                  <button
+                    key={t}
+                    onClick={() => setTab(t)}
+                    className={`px-2.5 py-1 text-xs rounded border ${tab === t ? "border-primary text-primary bg-primary/10" : "border-border text-muted-foreground"}`}
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <pre className="flex-1 overflow-auto font-mono text-[11px] bg-background/60 rounded p-3 border border-border">
+              {q.isLoading ? "Generating…" : text || "No blockable offenders yet."}
+            </pre>
+            <div className="mt-3 flex justify-end gap-2">
+              <Button variant="ghost" size="sm" onClick={() => setOpen(false)}>Close</Button>
+              <Button
+                size="sm"
+                disabled={!text}
+                onClick={() => {
+                  navigator.clipboard.writeText(text);
+                  toast.success("Copied to clipboard");
+                }}
+              >
+                Copy
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
+    </>
+  );
+}
+
 function DetectorRow({ d }: { d: Detector }) {
   const [open, setOpen] = useState(false);
+  const clean = d.match_count_clean ?? d.match_count ?? 0;
+  const raw = d.match_count ?? 0;
+  const excluded = Math.max(0, raw - clean);
   return (
     <div className="rounded-md border border-border bg-background/40">
       <button
@@ -272,26 +362,59 @@ function DetectorRow({ d }: { d: Detector }) {
         </div>
         {typeof d.match_count === "number" && (
           <div className="shrink-0 text-right">
-            <div className={`font-mono text-sm ${d.match_count > 0 ? "text-amber-400" : "text-muted-foreground"}`}>
-              {d.match_count.toLocaleString()}
+            <div className={`font-mono text-sm ${clean > 0 ? "text-amber-400" : "text-muted-foreground"}`}>
+              {clean.toLocaleString()}
             </div>
-            <div className="text-[10px] text-muted-foreground uppercase tracking-wider">24h hits</div>
+            <div className="text-[10px] text-muted-foreground uppercase tracking-wider">
+              threats {excluded > 0 && <span className="text-emerald-400">· −{excluded.toLocaleString()} verified</span>}
+            </div>
           </div>
         )}
       </button>
       {open && (
-        <div className="border-t border-border px-4 py-3 bg-background/60">
+        <div className="border-t border-border px-4 py-3 bg-background/60 space-y-3">
           {d.target_path && (
-            <div className="mb-2 text-xs">
+            <div className="text-xs">
               <span className="text-muted-foreground">Target: </span>
               <code className="font-mono">{d.target_path}</code>
             </div>
           )}
-          <pre className="font-mono text-[11px] text-foreground/80 overflow-auto max-h-64">
-            {JSON.stringify(d.es_query, null, 2)}
-          </pre>
+          {d.offenders && d.offenders.length > 0 && (
+            <div>
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5">Top offenders (enriched)</div>
+              <div className="space-y-1">
+                {d.offenders.slice(0, 6).map((o) => <OffenderRow key={o.ip} o={o} />)}
+              </div>
+            </div>
+          )}
+          <details>
+            <summary className="text-[10px] uppercase tracking-wider text-muted-foreground cursor-pointer">Raw ES query</summary>
+            <pre className="mt-2 font-mono text-[11px] text-foreground/80 overflow-auto max-h-64">
+              {JSON.stringify(d.es_query, null, 2)}
+            </pre>
+          </details>
         </div>
       )}
+    </div>
+  );
+}
+
+function OffenderRow({ o }: { o: Offender }) {
+  const cls = classBadge[o.classification];
+  const Icon = cls.icon;
+  return (
+    <div className="flex items-center gap-2.5 text-xs bg-background/60 rounded px-2.5 py-1.5">
+      <Badge variant="outline" className={`shrink-0 gap-1 ${cls.cls}`}>
+        <Icon className="h-3 w-3" /> {cls.label}
+      </Badge>
+      <code className="font-mono text-foreground shrink-0">{o.ip}</code>
+      <span className="text-muted-foreground truncate flex-1" title={o.reasons.join(" · ")}>
+        {o.rdns ?? "no rDNS"} {o.reasons[0] && <span>· {o.reasons[0]}</span>}
+      </span>
+      <span className="font-mono text-muted-foreground shrink-0">{o.eventCount.toLocaleString()}×</span>
+      <span className={`font-mono shrink-0 ${o.confidence >= 70 ? "text-red-400" : o.confidence >= 40 ? "text-amber-400" : "text-muted-foreground"}`}>
+        {o.confidence}
+      </span>
     </div>
   );
 }
@@ -331,7 +454,7 @@ function defaultPendingSteps() {
     { name: "Scan site with Firecrawl", ok: false },
     { name: "Auto-detect log schema", ok: false },
     { name: "Generate site-specific detectors", ok: false },
-    { name: "Backtest on last 24h", ok: false },
+    { name: "Enrich offenders + verify bots", ok: false },
   ];
 }
 
