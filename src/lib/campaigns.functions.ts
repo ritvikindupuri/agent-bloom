@@ -3,6 +3,8 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 import { searchEvents, chaffIndex } from "./es-chaff.server";
 import type { EsAuth } from "./es.server";
+import { generateBlockRule, TARGETS, type Target } from "./block-rules";
+
 
 const AI_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
 
@@ -246,4 +248,92 @@ export const liveEvents = createServerFn({ method: "POST" })
       }
       return { events: [], totals: null, error: msg };
     }
+  });
+
+// === Block-rule export ===
+export const exportBlockRule = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(z.object({
+    id: z.string().uuid(),
+    target: z.enum(["cloudflare", "nginx", "caddy", "haproxy", "aws_waf", "iptables", "fastly_vcl"]),
+  }).parse)
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { data: row, error } = await supabase
+      .from("bot_campaigns").select("*")
+      .eq("id", data.id).eq("user_id", userId).maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!row) throw new Error("Campaign not found");
+    const rule = generateBlockRule(row as any, data.target as Target);
+    return { rule, target: data.target, targets: TARGETS };
+  });
+
+// === IP reputation enrichment (free ip-api.com, no key, 45 req/min) ===
+export const enrichTopIp = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(z.object({ id: z.string().uuid() }).parse)
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { data: row } = await supabase.from("bot_campaigns")
+      .select("id,fingerprint").eq("id", data.id).eq("user_id", userId).maybeSingle();
+    if (!row) throw new Error("Campaign not found");
+    const ip = (row.fingerprint as any)?.top_ip;
+    if (!ip || !/^\d{1,3}(\.\d{1,3}){3}$/.test(ip)) return { intel: null, reason: "no_ip" };
+
+    // ip-api.com pro requires https; free tier is http only — fine from server.
+    const url = `http://ip-api.com/json/${ip}?fields=status,message,country,countryCode,regionName,city,isp,org,as,asname,proxy,hosting,mobile,query`;
+    const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
+    if (!res.ok) throw new Error(`ip-api ${res.status}`);
+    const j: any = await res.json();
+    if (j.status !== "success") return { intel: null, reason: j.message || "lookup_failed" };
+
+    const intel = {
+      ip: j.query, country: j.country, country_code: j.countryCode,
+      region: j.regionName, city: j.city, isp: j.isp, org: j.org,
+      asn: j.as, asn_name: j.asname,
+      flags: {
+        proxy: !!j.proxy, hosting: !!j.hosting, mobile: !!j.mobile,
+      },
+      checked_at: new Date().toISOString(),
+    };
+    // Persist on the campaign so the next view doesn't re-fetch
+    const merged = { ...(row.fingerprint as any), ip_intel: intel };
+    await supabase.from("bot_campaigns").update({ fingerprint: merged, updated_at: new Date().toISOString() }).eq("id", data.id);
+    return { intel };
+  });
+
+// === Block & log: marks campaign resolved + records an audit finding ===
+export const recordBlockAction = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(z.object({
+    id: z.string().uuid(),
+    target: z.enum(["cloudflare", "nginx", "caddy", "haproxy", "aws_waf", "iptables", "fastly_vcl"]),
+  }).parse)
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { data: row } = await supabase.from("bot_campaigns")
+      .select("*").eq("id", data.id).eq("user_id", userId).maybeSingle();
+    if (!row) throw new Error("Campaign not found");
+    const rule = generateBlockRule(row as any, data.target as Target);
+
+    await supabase.from("bot_campaigns")
+      .update({ status: "resolved", kill_rule: rule, updated_at: new Date().toISOString() })
+      .eq("id", data.id);
+
+    await supabase.from("threat_findings").insert({
+      user_id: userId,
+      kind: "campaign_blocked",
+      severity: (row.fingerprint as any)?.avg_score >= 80 ? "critical" : "high",
+      title: `Blocked campaign: ${row.name}`,
+      summary: `Operator marked campaign as blocked. Rule generated for ${data.target}. ${row.event_count} events / ${row.ip_count} IPs.`,
+      ip: (row.fingerprint as any)?.top_ip ?? null,
+      user_agent: (row.fingerprint as any)?.ua_family ?? null,
+      request_count: row.event_count,
+      first_seen: row.first_seen,
+      last_seen: row.last_seen,
+      status: "blocked",
+      evidence: { signature_hash: row.signature_hash, target: data.target, rule, fingerprint: row.fingerprint },
+    });
+
+    return { ok: true };
   });
