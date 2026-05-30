@@ -192,7 +192,7 @@ function EmptyConn() {
       <Plug className="h-8 w-8 mx-auto text-muted-foreground" />
       <h3 className="mt-4 font-display text-2xl">No data source connected</h3>
       <p className="mt-1 text-sm text-muted-foreground">Connect your Elasticsearch cluster to start sifting.</p>
-      <Link to="/app/connection"><Button className="mt-5">Connect Elasticsearch</Button></Link>
+      <Link to="/app/onboard"><Button className="mt-5">Activate Chaff</Button></Link>
     </div>
   );
 }
