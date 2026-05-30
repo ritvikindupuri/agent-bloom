@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ShieldAlert, ShieldOff, Eye, EyeOff, Lock, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { Hint } from "@/components/Hint";
 
 export const Route = createFileRoute("/app/threats")({
   component: ThreatsPage,
