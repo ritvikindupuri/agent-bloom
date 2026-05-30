@@ -399,3 +399,57 @@ export const getActivation = createServerFn({ method: "GET" })
     if (error) throw new Error(error.message);
     return { connection: data };
   });
+
+// Build a deployable blocklist (nginx / Cloudflare / iptables) from the top
+// malicious + suspicious offenders across all detectors. Verified bots are
+// always excluded.
+export const getBlocklist = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context;
+    const { data } = await supabase
+      .from("es_connections")
+      .select("label,detector_pack")
+      .eq("user_id", userId)
+      .eq("is_active", true)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const detectors: Detector[] = ((data?.detector_pack as any)?.detectors ?? []);
+    const map = new Map<string, { ip: string; confidence: number; events: number; reasons: string[]; rules: Set<string> }>();
+    for (const d of detectors) {
+      for (const o of d.offenders ?? []) {
+        if (o.classification === "verified_bot" || o.classification === "benign") continue;
+        if (o.confidence < 40) continue;
+        const cur = map.get(o.ip) ?? { ip: o.ip, confidence: 0, events: 0, reasons: [], rules: new Set<string>() };
+        cur.confidence = Math.max(cur.confidence, o.confidence);
+        cur.events += o.eventCount;
+        cur.reasons = Array.from(new Set([...cur.reasons, ...o.reasons]));
+        cur.rules.add(d.name);
+        map.set(o.ip, cur);
+      }
+    }
+    const offenders = Array.from(map.values()).sort((a, b) => b.confidence - a.confidence || b.events - a.events);
+    const host = data?.label ?? "chaff";
+    const date = new Date().toISOString();
+    const header = `# Chaff blocklist for ${host} — generated ${date}\n# ${offenders.length} IPs (confidence ≥ 40, verified bots excluded)`;
+
+    const nginx = [
+      header,
+      "# Drop into nginx http {} block:",
+      ...offenders.map((o) => `deny ${o.ip};  # confidence=${o.confidence} events=${o.events} rules=${Array.from(o.rules).join("|")}`),
+    ].join("\n");
+
+    const cloudflare = [
+      header,
+      "# Cloudflare IP Access Rules (one per line, mode=block, scope=zone):",
+      ...offenders.map((o) => o.ip),
+    ].join("\n");
+
+    const iptables = [
+      header,
+      ...offenders.map((o) => `iptables -A INPUT -s ${o.ip} -j DROP  # ${o.confidence}`),
+    ].join("\n");
+
+    return { host, count: offenders.length, offenders, nginx, cloudflare, iptables };
+  });
