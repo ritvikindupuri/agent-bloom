@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import ReactMarkdown from "react-markdown";
 import { Bot, Send, Trash2, Plus, Sparkles, Wrench } from "lucide-react";
 import { toast } from "sonner";
+import { Hint } from "@/components/Hint";
 
 export const Route = createFileRoute("/app/agent")({
   component: AgentPage,
