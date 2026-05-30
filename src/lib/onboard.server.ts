@@ -58,7 +58,8 @@ const STACKS: Record<StackId, Omit<StackInfo, "id">> = {
   },
   "react-spa": {
     label: "React SPA",
-    installLocation: "Paste into index.html before </body>.",
+    installLocation:
+      "Paste into public/index.html (or root index.html for Vite) just before </body>. Do NOT paste into a .jsx/.tsx component — React ignores inline <script> tags rendered via JSX.",
     baitPaths: [
       "/.env",
       "/config.js.bak",
@@ -166,20 +167,25 @@ export async function scanUrl(rawUrl: string, expectedSlug?: string): Promise<Sc
   const url = normalizeUrl(rawUrl);
   const fc = firecrawl();
   const result: any = await fc.scrape(url, {
-    formats: ["html", "links"],
+    formats: ["html", "rawHtml", "links"],
     onlyMainContent: false,
     waitFor: 1500,
   });
 
   const html: string = result?.html ?? result?.data?.html ?? "";
+  const rawHtml: string = result?.rawHtml ?? result?.data?.rawHtml ?? "";
   const metadata = result?.metadata ?? result?.data?.metadata ?? {};
   const links: string[] = result?.links ?? result?.data?.links ?? [];
 
-  const stackId = detectStack(html, metadata.headers ?? {}, url);
+  const stackId = detectStack(rawHtml || html, metadata.headers ?? {}, url);
   const stack = stackInfo(stackId);
 
+  // Beacon detection: the slug is the unique tenant signal. If it appears
+  // anywhere in the page source (rendered or raw), the snippet is installed.
+  // We don't require the literal "beacon.js" string because Firecrawl's
+  // rendered HTML can strip inline <script> tags.
   const beaconDetected = expectedSlug
-    ? html.includes(expectedSlug) && /beacon\.js/i.test(html)
+    ? (html.includes(expectedSlug) || rawHtml.includes(expectedSlug))
     : false;
 
   // Lightweight attack-surface heuristics from links we already have
