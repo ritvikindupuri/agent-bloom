@@ -5,7 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { recentAgentActivity } from "@/lib/demo.functions";
 import { Logo } from "@/components/Logo";
-import { LayoutDashboard, Bot, ShieldAlert, Plug, LogOut, Crosshair, Network, Plug2, Zap, Activity, Wrench } from "lucide-react";
+import { LayoutDashboard, Bot, ShieldAlert, LogOut, Crosshair, Network, Plug2, Zap, Activity, Wrench } from "lucide-react";
 
 export const Route = createFileRoute("/app")({
   component: AppLayout,
@@ -19,7 +19,6 @@ const NAV = [
   { to: "/app/threats", label: "Threats", icon: ShieldAlert },
   { to: "/app/honeypots", label: "Honeypots", icon: Crosshair },
   { to: "/app/mcp", label: "MCP", icon: Plug2 },
-  { to: "/app/connection", label: "Connection", icon: Plug },
 ] as const;
 
 function AppLayout() {

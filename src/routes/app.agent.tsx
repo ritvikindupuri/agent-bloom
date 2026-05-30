@@ -76,8 +76,8 @@ function AgentPage() {
         <div className="mt-12 rounded-xl border border-dashed border-border bg-surface/30 p-16 text-center">
           <Bot className="h-8 w-8 mx-auto text-muted-foreground" />
           <h3 className="mt-4 font-display text-2xl">Agent needs your logs</h3>
-          <p className="mt-1 text-sm text-muted-foreground">Connect Elasticsearch first so the agent has something to investigate.</p>
-          <Link to="/app/connection"><Button className="mt-5">Connect Elasticsearch</Button></Link>
+          <p className="mt-1 text-sm text-muted-foreground">Activate Chaff first so the agent has something to investigate.</p>
+          <Link to="/app/onboard"><Button className="mt-5">Activate Chaff</Button></Link>
         </div>
       </div>
     );

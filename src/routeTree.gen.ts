@@ -19,7 +19,6 @@ import { Route as AppMcpRouteImport } from './routes/app.mcp'
 import { Route as AppHoneypotsRouteImport } from './routes/app.honeypots'
 import { Route as AppHarvestRouteImport } from './routes/app.harvest'
 import { Route as AppDashboardRouteImport } from './routes/app.dashboard'
-import { Route as AppConnectionRouteImport } from './routes/app.connection'
 import { Route as AppCampaignsRouteImport } from './routes/app.campaigns'
 import { Route as AppAgentRouteImport } from './routes/app.agent'
 import { Route as ApiMcpRouteImport } from './routes/api/mcp'
@@ -77,11 +76,6 @@ const AppDashboardRoute = AppDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AppRoute,
 } as any)
-const AppConnectionRoute = AppConnectionRouteImport.update({
-  id: '/connection',
-  path: '/connection',
-  getParentRoute: () => AppRoute,
-} as any)
 const AppCampaignsRoute = AppCampaignsRouteImport.update({
   id: '/campaigns',
   path: '/campaigns',
@@ -120,7 +114,6 @@ export interface FileRoutesByFullPath {
   '/api/mcp': typeof ApiMcpRoute
   '/app/agent': typeof AppAgentRoute
   '/app/campaigns': typeof AppCampaignsRouteWithChildren
-  '/app/connection': typeof AppConnectionRoute
   '/app/dashboard': typeof AppDashboardRoute
   '/app/harvest': typeof AppHarvestRoute
   '/app/honeypots': typeof AppHoneypotsRoute
@@ -139,7 +132,6 @@ export interface FileRoutesByTo {
   '/api/mcp': typeof ApiMcpRoute
   '/app/agent': typeof AppAgentRoute
   '/app/campaigns': typeof AppCampaignsRouteWithChildren
-  '/app/connection': typeof AppConnectionRoute
   '/app/dashboard': typeof AppDashboardRoute
   '/app/harvest': typeof AppHarvestRoute
   '/app/honeypots': typeof AppHoneypotsRoute
@@ -159,7 +151,6 @@ export interface FileRoutesById {
   '/api/mcp': typeof ApiMcpRoute
   '/app/agent': typeof AppAgentRoute
   '/app/campaigns': typeof AppCampaignsRouteWithChildren
-  '/app/connection': typeof AppConnectionRoute
   '/app/dashboard': typeof AppDashboardRoute
   '/app/harvest': typeof AppHarvestRoute
   '/app/honeypots': typeof AppHoneypotsRoute
@@ -180,7 +171,6 @@ export interface FileRouteTypes {
     | '/api/mcp'
     | '/app/agent'
     | '/app/campaigns'
-    | '/app/connection'
     | '/app/dashboard'
     | '/app/harvest'
     | '/app/honeypots'
@@ -199,7 +189,6 @@ export interface FileRouteTypes {
     | '/api/mcp'
     | '/app/agent'
     | '/app/campaigns'
-    | '/app/connection'
     | '/app/dashboard'
     | '/app/harvest'
     | '/app/honeypots'
@@ -218,7 +207,6 @@ export interface FileRouteTypes {
     | '/api/mcp'
     | '/app/agent'
     | '/app/campaigns'
-    | '/app/connection'
     | '/app/dashboard'
     | '/app/harvest'
     | '/app/honeypots'
@@ -313,13 +301,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppDashboardRouteImport
       parentRoute: typeof AppRoute
     }
-    '/app/connection': {
-      id: '/app/connection'
-      path: '/connection'
-      fullPath: '/app/connection'
-      preLoaderRoute: typeof AppConnectionRouteImport
-      parentRoute: typeof AppRoute
-    }
     '/app/campaigns': {
       id: '/app/campaigns'
       path: '/campaigns'
@@ -380,7 +361,6 @@ const AppCampaignsRouteWithChildren = AppCampaignsRoute._addFileChildren(
 interface AppRouteChildren {
   AppAgentRoute: typeof AppAgentRoute
   AppCampaignsRoute: typeof AppCampaignsRouteWithChildren
-  AppConnectionRoute: typeof AppConnectionRoute
   AppDashboardRoute: typeof AppDashboardRoute
   AppHarvestRoute: typeof AppHarvestRoute
   AppHoneypotsRoute: typeof AppHoneypotsRoute
@@ -392,7 +372,6 @@ interface AppRouteChildren {
 const AppRouteChildren: AppRouteChildren = {
   AppAgentRoute: AppAgentRoute,
   AppCampaignsRoute: AppCampaignsRouteWithChildren,
-  AppConnectionRoute: AppConnectionRoute,
   AppDashboardRoute: AppDashboardRoute,
   AppHarvestRoute: AppHarvestRoute,
   AppHoneypotsRoute: AppHoneypotsRoute,
@@ -415,3 +394,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
