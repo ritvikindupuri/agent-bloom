@@ -148,9 +148,9 @@ function PageHeader({ title, subtitle, right }: { title: string; subtitle?: stri
   );
 }
 
-function Stat({ label, value, icon, accent, loading }: { label: string; value?: number; icon: React.ReactNode; accent?: "bot" | "human"; loading?: boolean }) {
+function Stat({ label, value, icon, accent, loading, hint }: { label: string; value?: number; icon: React.ReactNode; accent?: "bot" | "human"; loading?: boolean; hint?: string }) {
   const color = accent === "bot" ? "text-[color:var(--bot)]" : accent === "human" ? "text-[color:var(--human)]" : "text-foreground";
-  return (
+  const card = (
     <div className="rounded-lg border border-border bg-surface/40 p-4">
       <div className="flex items-center justify-between text-muted-foreground">
         <span className="text-xs uppercase tracking-wider">{label}</span>{icon}
@@ -160,6 +160,7 @@ function Stat({ label, value, icon, accent, loading }: { label: string; value?: 
       </div>
     </div>
   );
+  return hint ? <Hint label={hint}>{card}</Hint> : card;
 }
 
 function ListCard({ title, rows, mono }: { title: string; rows?: Array<{ key: string; count: number; tag?: "bot" | "human" }>; mono?: boolean }) {
