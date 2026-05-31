@@ -152,12 +152,19 @@ function AgentPage() {
           <Sparkles className="h-4 w-4 text-primary" />
           <span className="font-display text-lg">Chaff Agent</span>
           <span className="text-xs text-muted-foreground">· Gemini · live tools over your index</span>
+          <div className="ml-auto">
+            <Hint label="Generate a professionally formatted PDF report of this entire session — executive summary, full transcript, tool calls, and conclusion." side="bottom">
+              <Button variant="outline" size="sm" onClick={exportPdf} disabled={!canExport}>
+                <FileDown className="h-4 w-4 mr-2" /> Download PDF report
+              </Button>
+            </Hint>
+          </div>
         </div>
 
         <div ref={scrollRef} className="flex-1 overflow-auto">
           <div className="mx-auto max-w-3xl px-6 py-8 space-y-5">
             {!activeId && (msgs.data?.messages?.length ?? 0) === 0 && (
-              <Welcome onPick={submit} />
+              <Welcome onPick={fillInput} />
             )}
             {(msgs.data?.messages ?? []).map((m: any) => (
               <MessageBubble key={m.id} message={m} />
