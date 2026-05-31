@@ -289,11 +289,13 @@ export const enrichTopIp = createServerFn({ method: "POST" })
     if (j.success === false) return { intel: null, reason: j.message || "lookup_failed" };
 
     const intel = {
-      ip: j.query, country: j.country, country_code: j.countryCode,
-      region: j.regionName, city: j.city, isp: j.isp, org: j.org,
-      asn: j.as, asn_name: j.asname,
+      ip: j.ip, country: j.country, country_code: j.country_code,
+      region: j.region, city: j.city,
+      isp: j.connection?.isp, org: j.connection?.org,
+      asn: j.connection?.asn ? `AS${j.connection.asn}` : null,
+      asn_name: j.connection?.org,
       flags: {
-        proxy: !!j.proxy, hosting: !!j.hosting, mobile: !!j.mobile,
+        proxy: false, hosting: false, mobile: false,
       },
       checked_at: new Date().toISOString(),
     };
