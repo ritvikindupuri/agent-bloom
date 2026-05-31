@@ -105,7 +105,8 @@ export const Route = createFileRoute("/api/public/beacon")({
             });
             indexed = true;
           } catch (e: any) {
-            indexError = e?.message?.slice(0, 200) ?? "es error";
+            console.error("[beacon] ES index failed:", e?.message ?? e);
+            indexError = "es_write_failed";
           }
         }
 
