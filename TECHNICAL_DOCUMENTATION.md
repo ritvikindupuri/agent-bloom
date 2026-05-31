@@ -101,6 +101,42 @@ graph TD
 
 Every aspect of Chaff is designed to provide comprehensive bot-traffic analysis. Below is a detailed breakdown of all system features and agent capabilities.
 
+### IP Enrichment & Threat Confidence Scoring
+
+Chaff employs a rigorous multi-layered pipeline to score and classify traffic automatically, centralized in `ip-intel.server.ts`. This ensures raw IPs and User-Agents are enriched with actionable context before being displayed as threats.
+
+- **Purpose**: To calculate a reliable 0-100 confidence score determining whether an IP is `benign` (< 15), `unknown` (15-39), `suspicious` (40-69), or `malicious` (70+).
+- **Capabilities & Logic Flow**:
+  1. **Baseline Suspicion & Volume**: Any IP surfaced by a detection rule starts with a baseline confidence of 20. High event counts within 24h progressively increase the score (e.g., >1,000 events adds +25 points, >100 adds +15, >10 adds +5).
+  2. **Reverse DNS (rDNS) & Verified Bot Forward-Confirmation**:
+     - The system queries Cloudflare DNS for the IP's PTR record.
+     - **Verified Bots**: If the rDNS hostname claims to be a known bot (e.g., Googlebot, Bingbot, Applebot), Chaff performs a forward DNS lookup. If the A record matches the original IP, it is classified as a `verified_bot` (confidence 0) and excluded from blocking.
+     - **Spoofing**: If the forward lookup fails to match, the system flags it as a "spoofed PTR", drastically increasing the threat confidence (+40 points).
+     - **Missing rDNS**: Lack of an rDNS record is treated as suspicious (+10 points) because legitimate ISPs usually configure them, whereas proxy nodes or temporary allocations often do not.
+  3. **AbuseIPDB Integration**:
+     - The IP is queried against AbuseIPDB.
+     - A score of >= 75 adds 35 confidence points.
+     - A score of >= 25 adds 15 confidence points.
+     - A score > 0 adds 5 confidence points.
+     - The API also returns usage types (e.g., Data Center/Hosting, Residential). Residential proxies with high abuse scores receive an additional penalty (+20 points).
+  4. **Tor and Datacenter Detection**:
+     - Regular expression heuristics analyze the rDNS string against known Tor exit nodes (`.tor-exit`, `torservers.net`) adding +35 points.
+     - Known Datacenter patterns (AWS, Azure, DigitalOcean, Hetzner, OVH, etc.) add +20 points, as legitimate human traffic rarely originates directly from cloud providers.
+  5. **User-Agent Heuristics**:
+     - The sample User-Agent is analyzed. Missing UAs (+25 points) or suspiciously short UAs under 20 characters (+15 points) are penalized.
+     - UAs matching known automation tools (e.g., `python-requests`, `curl`, `scrapy`, `PhantomJS`, `selenium`) add a flat +40 points to the confidence score.
+
+### Initial Activation & Continuous Rescanning
+
+When a user initially configures Chaff (clicks "Activate Chaff" in `activate.functions.ts`):
+
+- The system scans the provided URL via Firecrawl to understand the technology stack and map out potentially sensitive endpoints (e.g., admin panels, APIs).
+- It samples a document from the customer's Elasticsearch index and leverages AI to automatically detect the schema (Timestamp, IP, User-Agent, URL, Status Code).
+- It then uses the AI to dynamically write 4-6 highly specific Elasticsearch `bool` query detection rules customized purely for that customer's site.
+- **Immediate Threat Recording**: The system runs a "dry-run" of these rules over the last 24 hours of data, enriches the IPs, and automatically inserts any high-confidence offenders (score >= 60, excluding verified bots) directly into the `threat_findings` table so the user sees immediate value.
+
+A continuous background worker (`rescan.server.ts`) routinely executes these tailored rules against the latest 24h window, passing new offenders through the IP enrichment pipeline, and appending or updating active threats in the dashboard.
+
 ### The Chaff Agent (Autonomous AI Analyst)
 
 The core intelligence of the application resides in `agent.functions.ts`.
