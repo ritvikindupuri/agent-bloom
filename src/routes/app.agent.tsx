@@ -71,6 +71,32 @@ function AgentPage() {
     send.mutate(text.trim());
   };
 
+  const fillInput = (text: string) => {
+    setInput(text);
+    // focus textarea after fill
+    requestAnimationFrame(() => {
+      const ta = document.querySelector<HTMLTextAreaElement>('textarea[placeholder^="Ask the agent"]');
+      ta?.focus();
+      ta?.setSelectionRange(text.length, text.length);
+    });
+  };
+
+  const activeConv = convs.data?.conversations?.find((c) => c.id === activeId);
+  const canExport = !!activeId && (msgs.data?.messages?.length ?? 0) > 0;
+
+  const exportPdf = () => {
+    if (!activeConv || !msgs.data?.messages?.length) {
+      toast.error("Nothing to export yet — send a message first.");
+      return;
+    }
+    try {
+      downloadSessionPdf(activeConv as any, msgs.data.messages as any);
+      toast.success("Session report downloaded.");
+    } catch (e: any) {
+      toast.error(e.message ?? "Failed to generate PDF.");
+    }
+  };
+
   if (!hasConn && !conns.isLoading) {
     return (
       <div className="p-10">
