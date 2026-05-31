@@ -28,7 +28,10 @@ function ThreatsPage() {
 
   const upd = useMutation({
     mutationFn: ({ id, status }: { id: string; status: any }) => fnUpdate({ data: { id, status } }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["threats"] }); toast.success("Updated"); },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["threats"] });
+      toast.success("Updated");
+    },
   });
 
   const threats = q.data?.threats ?? [];
@@ -37,18 +40,25 @@ function ThreatsPage() {
     <div className="p-10 max-w-5xl">
       <div>
         <h1 className="font-display text-4xl tracking-tight">Threats</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Findings recorded by the agent. Triage, dismiss, or mark blocked.</p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Findings recorded by the agent. Triage, dismiss, or mark blocked.
+        </p>
       </div>
 
       <div className="mt-8 space-y-3">
         {q.isLoading && (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Loading…</div>
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" /> Loading…
+          </div>
         )}
         {!q.isLoading && threats.length === 0 && (
           <div className="rounded-xl border border-dashed border-border bg-surface/30 p-16 text-center">
             <ShieldAlert className="h-8 w-8 mx-auto text-muted-foreground" />
             <h3 className="mt-4 font-display text-2xl">No threats recorded yet</h3>
-            <p className="mt-1 text-sm text-muted-foreground">Ask the agent to investigate your traffic — it will record findings here.</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Activate Chaff to scan your traffic for threats, or wait for the agent to find
+              something.
+            </p>
           </div>
         )}
 
@@ -57,32 +67,70 @@ function ThreatsPage() {
             <div className="flex items-start justify-between gap-4">
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <Badge className={`uppercase text-[10px] tracking-wider ${SEVERITY[t.severity] ?? ""}`} variant="secondary">{t.severity}</Badge>
-                  <Badge variant="outline" className="text-[10px]">{t.kind}</Badge>
-                  <Badge variant="outline" className="text-[10px]">{t.status}</Badge>
-                  <span className="text-xs text-muted-foreground ml-auto">{new Date(t.created_at).toLocaleString()}</span>
+                  <Badge
+                    className={`uppercase text-[10px] tracking-wider ${SEVERITY[t.severity] ?? ""}`}
+                    variant="secondary"
+                  >
+                    {t.severity}
+                  </Badge>
+                  <Badge variant="outline" className="text-[10px]">
+                    {t.kind}
+                  </Badge>
+                  <Badge variant="outline" className="text-[10px]">
+                    {t.status}
+                  </Badge>
+                  <span className="text-xs text-muted-foreground ml-auto">
+                    {new Date(t.created_at).toLocaleString()}
+                  </span>
                 </div>
                 <h3 className="mt-2 font-display text-xl">{t.title}</h3>
                 <p className="mt-1 text-sm text-muted-foreground">{t.summary}</p>
                 <div className="mt-3 flex gap-4 text-xs font-mono text-muted-foreground flex-wrap">
-                  {t.ip && <span>IP: <span className="text-foreground">{t.ip}</span></span>}
-                  {t.user_agent && <span className="truncate max-w-md">UA: <span className="text-foreground">{t.user_agent}</span></span>}
-                  {t.request_count != null && <span>Requests: <span className="text-foreground">{Number(t.request_count).toLocaleString()}</span></span>}
+                  {t.ip && (
+                    <span>
+                      IP: <span className="text-foreground">{t.ip}</span>
+                    </span>
+                  )}
+                  {t.user_agent && (
+                    <span className="truncate max-w-md">
+                      UA: <span className="text-foreground">{t.user_agent}</span>
+                    </span>
+                  )}
+                  {t.request_count != null && (
+                    <span>
+                      Requests:{" "}
+                      <span className="text-foreground">
+                        {Number(t.request_count).toLocaleString()}
+                      </span>
+                    </span>
+                  )}
                 </div>
               </div>
               <div className="flex flex-col gap-1.5 shrink-0">
                 <Hint label="Mark as blocked. Use after you've added this IP/UA to your firewall or Cloudflare rules.">
-                  <Button size="sm" variant="outline" onClick={() => upd.mutate({ id: t.id, status: "blocked" })}>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => upd.mutate({ id: t.id, status: "blocked" })}
+                  >
                     <Lock className="h-3.5 w-3.5 mr-1" /> Mark blocked
                   </Button>
                 </Hint>
                 <Hint label="Pin this finding while you dig in. Keeps it visible at the top of your queue.">
-                  <Button size="sm" variant="ghost" onClick={() => upd.mutate({ id: t.id, status: "investigating" })}>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => upd.mutate({ id: t.id, status: "investigating" })}
+                  >
                     <Eye className="h-3.5 w-3.5 mr-1" /> Investigating
                   </Button>
                 </Hint>
                 <Hint label="Hide this finding. It stays in the database but is removed from the active queue.">
-                  <Button size="sm" variant="ghost" onClick={() => upd.mutate({ id: t.id, status: "dismissed" })}>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => upd.mutate({ id: t.id, status: "dismissed" })}
+                  >
                     <EyeOff className="h-3.5 w-3.5 mr-1" /> Dismiss
                   </Button>
                 </Hint>
@@ -90,7 +138,9 @@ function ThreatsPage() {
             </div>
             {t.evidence && Object.keys(t.evidence).length > 0 && (
               <details className="mt-3">
-                <summary className="cursor-pointer text-xs text-muted-foreground hover:text-foreground">Evidence</summary>
+                <summary className="cursor-pointer text-xs text-muted-foreground hover:text-foreground">
+                  Evidence
+                </summary>
                 <pre className="mt-2 overflow-auto rounded bg-background/60 p-3 font-mono text-[11px] text-muted-foreground max-h-64">
                   {JSON.stringify(t.evidence, null, 2)}
                 </pre>

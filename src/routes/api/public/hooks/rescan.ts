@@ -25,7 +25,8 @@ export const Route = createFileRoute("/api/public/hooks/rescan")({
       POST: async ({ request }) => {
         if (!isAuthorized(request)) {
           return new Response(JSON.stringify({ ok: false, error: "forbidden" }), {
-            status: 403, headers: { "Content-Type": "application/json" },
+            status: 403,
+            headers: { "Content-Type": "application/json" },
           });
         }
         try {
@@ -34,14 +35,16 @@ export const Route = createFileRoute("/api/public/hooks/rescan")({
         } catch (e: any) {
           console.error("[rescan] failed:", e?.message ?? e);
           return new Response(JSON.stringify({ ok: false, error: "rescan_failed" }), {
-            status: 500, headers: { "Content-Type": "application/json" },
+            status: 500,
+            headers: { "Content-Type": "application/json" },
           });
         }
       },
       GET: async ({ request }) => {
         if (!isAuthorized(request)) {
           return new Response(JSON.stringify({ ok: false, error: "forbidden" }), {
-            status: 403, headers: { "Content-Type": "application/json" },
+            status: 403,
+            headers: { "Content-Type": "application/json" },
           });
         }
         return Response.json({ ok: true, hint: "POST to trigger a rescan" });

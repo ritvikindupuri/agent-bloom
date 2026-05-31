@@ -32,7 +32,7 @@ export const saveConnection = createServerFn({ method: "POST" })
       userAgentField: z.string().min(1).max(120).default("user_agent.original"),
       urlField: z.string().min(1).max(120).default("url.path"),
       statusField: z.string().min(1).max(120).default("http.response.status_code"),
-    }).parse
+    }).parse,
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
@@ -66,7 +66,11 @@ export const saveConnection = createServerFn({ method: "POST" })
     };
 
     if (data.id) {
-      const { error } = await supabase.from("es_connections").update(row).eq("id", data.id).eq("user_id", userId);
+      const { error } = await supabase
+        .from("es_connections")
+        .update(row)
+        .eq("id", data.id)
+        .eq("user_id", userId);
       if (error) throw new Error(error.message);
     } else {
       // Mark others inactive
@@ -83,7 +87,9 @@ export const listConnections = createServerFn({ method: "GET" })
     const { supabase, userId } = context;
     const { data, error } = await supabase
       .from("es_connections")
-      .select("id,label,endpoint,index_pattern,timestamp_field,ip_field,user_agent_field,url_field,status_field,is_active,last_tested_at,last_test_ok")
+      .select(
+        "id,label,endpoint,index_pattern,timestamp_field,ip_field,user_agent_field,url_field,status_field,is_active,last_tested_at,last_test_ok",
+      )
       .eq("user_id", userId)
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
@@ -95,14 +101,27 @@ export const deleteConnection = createServerFn({ method: "POST" })
   .inputValidator(z.object({ id: z.string().uuid() }).parse)
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
-    const { error } = await supabase.from("es_connections").delete().eq("id", data.id).eq("user_id", userId);
+    const { error } = await supabase
+      .from("es_connections")
+      .delete()
+      .eq("id", data.id)
+      .eq("user_id", userId);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
 
 export const getMetrics = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator(z.object({ rangeMinutes: z.number().int().min(5).max(60 * 24 * 30).default(60) }).parse)
+  .inputValidator(
+    z.object({
+      rangeMinutes: z
+        .number()
+        .int()
+        .min(5)
+        .max(60 * 24 * 30)
+        .default(60),
+    }).parse,
+  )
   .handler(async ({ data, context }): Promise<{ metrics: Metrics | null; error?: string }> => {
     const { supabase, userId } = context;
     const conn = await getActiveConnection(supabase, userId);
@@ -115,7 +134,8 @@ export const getMetrics = createServerFn({ method: "POST" })
     const statusField = conn.status_field;
 
     const intervalMin = Math.max(1, Math.floor(data.rangeMinutes / 60));
-    const intervalUnit = data.rangeMinutes <= 120 ? "1m" : data.rangeMinutes <= 60 * 24 ? "5m" : `${intervalMin}m`;
+    const intervalUnit =
+      data.rangeMinutes <= 120 ? "1m" : data.rangeMinutes <= 60 * 24 ? "5m" : `${intervalMin}m`;
 
     const body = {
       size: 0,
@@ -143,10 +163,12 @@ export const getMetrics = createServerFn({ method: "POST" })
     } catch (e) {
       // Retry without .keyword for fields that may already be keyword type
       try {
-        const fallback = JSON.parse(JSON.stringify(body)
-          .replace(new RegExp(`${uaField}\\.keyword`, "g"), uaField)
-          .replace(new RegExp(`${ipField}\\.keyword`, "g"), ipField)
-          .replace(new RegExp(`${urlField}\\.keyword`, "g"), urlField));
+        const fallback = JSON.parse(
+          JSON.stringify(body)
+            .replace(new RegExp(`${uaField}\\.keyword`, "g"), uaField)
+            .replace(new RegExp(`${ipField}\\.keyword`, "g"), ipField)
+            .replace(new RegExp(`${urlField}\\.keyword`, "g"), urlField),
+        );
         res = await esSearch(auth, conn.index_pattern, fallback);
       } catch (e2) {
         return { metrics: null, error: e2 instanceof Error ? e2.message : String(e2) };
@@ -175,10 +197,12 @@ export const getMetrics = createServerFn({ method: "POST" })
     }));
 
     const timeline: TrafficPoint[] = timelineBuckets.map((b: any) => {
-      let bots = 0; let humans = 0;
+      let bots = 0;
+      let humans = 0;
       for (const ub of b.ua?.buckets ?? []) {
         const c = classifyUA(ub.key);
-        if (c.isBot) bots += ub.doc_count; else humans += ub.doc_count;
+        if (c.isBot) bots += ub.doc_count;
+        else humans += ub.doc_count;
       }
       const sampled = bots + humans;
       const total = b.doc_count as number;
@@ -224,14 +248,19 @@ export const listThreats = createServerFn({ method: "GET" })
 
 export const updateThreatStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator(z.object({
-    id: z.string().uuid(),
-    status: z.enum(["open", "blocked", "dismissed", "investigating"]),
-  }).parse)
+  .inputValidator(
+    z.object({
+      id: z.string().uuid(),
+      status: z.enum(["open", "blocked", "dismissed", "investigating"]),
+    }).parse,
+  )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
-    const { error } = await supabase.from("threat_findings")
-      .update({ status: data.status }).eq("id", data.id).eq("user_id", userId);
+    const { error } = await supabase
+      .from("threat_findings")
+      .update({ status: data.status })
+      .eq("id", data.id)
+      .eq("user_id", userId);
     if (error) throw new Error(error.message);
     return { ok: true };
   });

@@ -1,9 +1,11 @@
 # Chaff - Technical Documentation
 
 ## Executive Summary
+
 Chaff is an autonomous bot-traffic analyst and security mitigation system designed to detect and separate malicious bots (such as scrapers, credential stuffers, and scanners) from legitimate human traffic. By connecting directly to an organization's existing Elasticsearch logs, Chaff utilizes a sophisticated AI agent powered by Gemini (via Lovable Cloud) to continuously monitor, analyze, and report on traffic patterns. It provides actionable threat intelligence, creates automated honeypots using Firecrawl, and enables active mitigation through IP and User-Agent blocking rules.
 
 ## Table of Contents
+
 1. [Executive Summary](#executive-summary)
 2. [System Architecture](#system-architecture)
    - [Architecture Diagram](#architecture-diagram)
@@ -99,8 +101,46 @@ graph TD
 
 Every aspect of Chaff is designed to provide comprehensive bot-traffic analysis. Below is a detailed breakdown of all system features and agent capabilities.
 
+### IP Enrichment & Threat Confidence Scoring
+
+Chaff employs a rigorous multi-layered pipeline to score and classify traffic automatically, centralized in `ip-intel.server.ts`. This ensures raw IPs and User-Agents are enriched with actionable context before being displayed as threats.
+
+- **Purpose**: To calculate a reliable 0-100 confidence score determining whether an IP is `benign` (< 15), `unknown` (15-39), `suspicious` (40-69), or `malicious` (70+).
+- **Capabilities & Logic Flow**:
+  1. **Baseline Suspicion & Volume**: Any IP surfaced by a detection rule starts with a baseline confidence of 20. High event counts within 24h progressively increase the score (e.g., >1,000 events adds +25 points, >100 adds +15, >10 adds +5).
+  2. **Reverse DNS (rDNS) & Verified Bot Forward-Confirmation**:
+     - The system queries Cloudflare DNS for the IP's PTR record.
+     - **Verified Bots**: If the rDNS hostname claims to be a known bot (e.g., Googlebot, Bingbot, Applebot), Chaff performs a forward DNS lookup. If the A record matches the original IP, it is classified as a `verified_bot` (confidence 0) and excluded from blocking.
+     - **Spoofing**: If the forward lookup fails to match, the system flags it as a "spoofed PTR", drastically increasing the threat confidence (+40 points).
+     - **Missing rDNS**: Lack of an rDNS record is treated as suspicious (+10 points) because legitimate ISPs usually configure them, whereas proxy nodes or temporary allocations often do not.
+  3. **AbuseIPDB Integration**:
+     - The IP is queried against AbuseIPDB.
+     - A score of >= 75 adds 35 confidence points.
+     - A score of >= 25 adds 15 confidence points.
+     - A score > 0 adds 5 confidence points.
+     - The API also returns usage types (e.g., Data Center/Hosting, Residential). Residential proxies with high abuse scores receive an additional penalty (+20 points).
+  4. **Tor and Datacenter Detection**:
+     - Regular expression heuristics analyze the rDNS string against known Tor exit nodes (`.tor-exit`, `torservers.net`) adding +35 points.
+     - Known Datacenter patterns (AWS, Azure, DigitalOcean, Hetzner, OVH, etc.) add +20 points, as legitimate human traffic rarely originates directly from cloud providers.
+  5. **User-Agent Heuristics**:
+     - The sample User-Agent is analyzed. Missing UAs (+25 points) or suspiciously short UAs under 20 characters (+15 points) are penalized.
+     - UAs matching known automation tools (e.g., `python-requests`, `curl`, `scrapy`, `PhantomJS`, `selenium`) add a flat +40 points to the confidence score.
+
+### Initial Activation & Continuous Rescanning
+
+When a user initially configures Chaff (clicks "Activate Chaff" in `activate.functions.ts`):
+
+- The system scans the provided URL via Firecrawl to understand the technology stack and map out potentially sensitive endpoints (e.g., admin panels, APIs).
+- It samples a document from the customer's Elasticsearch index and leverages AI to automatically detect the schema (Timestamp, IP, User-Agent, URL, Status Code).
+- It then uses the AI to dynamically write 4-6 highly specific Elasticsearch `bool` query detection rules customized purely for that customer's site.
+- **Immediate Threat Recording**: The system runs a "dry-run" of these rules over the last 24 hours of data, enriches the IPs, and automatically inserts any high-confidence offenders (score >= 60, excluding verified bots) directly into the `threat_findings` table so the user sees immediate value.
+
+A continuous background worker (`rescan.server.ts`) routinely executes these tailored rules against the latest 24h window, passing new offenders through the IP enrichment pipeline, and appending or updating active threats in the dashboard.
+
 ### The Chaff Agent (Autonomous AI Analyst)
+
 The core intelligence of the application resides in `agent.functions.ts`.
+
 - **Purpose**: An autonomous loop driven by Google's Gemini model that acts as a Tier 1 Security Analyst.
 - **Capabilities**:
   - **Tool Calling:** The agent is provided with native tools to inspect logs.
@@ -111,34 +151,41 @@ The core intelligence of the application resides in `agent.functions.ts`.
 - **Operation**: The agent operates in a conversational loop. The user asks a question, the agent plans a query, executes the tool, evaluates the data, and either asks for more data or formulates a final markdown report for the user.
 
 ### Elasticsearch Integration & Dashboard (Threats)
+
 - **Purpose**: To provide a unified view of the customer's web traffic without copying massive logs into Chaff's database.
 - **Capabilities**:
   - **Dynamic Field Mapping:** Handles custom customer indexes by mapping required fields (`timestamp_field`, `ip_field`, `user_agent_field`, `url_field`, `status_field`).
   - **Threats Dashboard (`app.threats.tsx`):** Displays aggregated metrics (Total Requests, Bot vs. Human Traffic breakdown). It provides real-time time-series charts (via Recharts) and lists active threats recorded by the Agent.
 
 ### Honeypots & Traps
+
 - **Purpose**: Proactive defense mechanism to identify and record bad actors before they hit production data.
 - **Capabilities**:
   - **Site Crawling:** Uses Firecrawl (`@mendable/firecrawl-js`) to ingest the customer's legitimate website structure.
   - **Trap Generation (`app.honeypots.tsx`):** Automatically generates highly convincing decoy pages. These traps include hidden links (invisible to humans) that only aggressive crawlers and bots will follow. Once an entity visits a trap URL (e.g., `/trap/admin-login-backup`), its IP and User-Agent are instantly flagged as malicious.
 
 ### Campaigns
+
 - **Purpose**: Structured, long-term investigations focused on specific traffic anomalies.
 - **Capabilities (`app.campaigns.tsx`)**: Users can define a targeted campaign (e.g., "Track Chinese IPs hitting /api/login"). The system continuously monitors Elasticsearch for matching queries over time, aggregating the findings into a dedicated campaign report separate from the general traffic overview.
 
 ### Live View
+
 - **Purpose**: Provides a real-time, unaggregated stream of log events.
 - **Capabilities**: Directly tails the connected Elasticsearch index to show raw requests as they happen, allowing SecOps to visualize traffic volume and immediately spot aggressive spikes before the Agent is even queried.
 
 ### Block Rules & Mitigation
+
 - **Purpose**: To take action on the insights generated by Chaff.
 - **Capabilities (`block-rules.ts`)**: Users can explicitly ban an IP or a User-Agent string. The system maintains this blocklist in Supabase. This list can be exported or integrated downstream to automatically update WAF (Web Application Firewall) rules.
 
 ### MCP (Model Context Protocol) Server
+
 - **Purpose**: Seamless integration with external AI developer tools (like Cursor or other MCP clients).
 - **Capabilities (`mcp.functions.ts`)**: Hosts a local MCP server that exposes Chaff's threat intelligence context directly to local AI assistants, allowing developers to ask their IDE questions like "Are there any threats targeting the authentication endpoints we just deployed?"
 
 ---
 
 ## Conclusion
+
 Chaff represents a paradigm shift in log analysis. By keeping the heavy log data where it lives (Elasticsearch) and bringing the intelligence (Gemini Agent) to the data, Chaff minimizes latency and cost. Its robust feature set—ranging from automated AI investigations and external integrations via Firecrawl, to proactive Honeypot deployments—ensures comprehensive security against the growing landscape of automated web threats. Every agent and feature works seamlessly to separate the humans from the bots.

@@ -2,16 +2,39 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
-import { activate, getActivation, getBlocklist, listSessions, clearSession, restoreSession } from "@/lib/activate.functions";
+import {
+  activate,
+  getActivation,
+  getBlocklist,
+  listSessions,
+  clearSession,
+  restoreSession,
+} from "@/lib/activate.functions";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import {
-  Globe, Database, Sparkles, Loader2, CheckCircle2, XCircle,
-  ShieldAlert, Zap, ArrowRight, Eye, EyeOff, Crosshair, Download,
-  ShieldCheck, AlertTriangle, HelpCircle, History, Trash2, RotateCcw,
+  Globe,
+  Database,
+  Sparkles,
+  Loader2,
+  CheckCircle2,
+  XCircle,
+  ShieldAlert,
+  Zap,
+  ArrowRight,
+  Eye,
+  EyeOff,
+  Crosshair,
+  Download,
+  ShieldCheck,
+  AlertTriangle,
+  HelpCircle,
+  History,
+  Trash2,
+  RotateCcw,
 } from "lucide-react";
 import { Hint } from "@/components/Hint";
 
@@ -33,10 +56,14 @@ type Offender = {
 };
 
 type Detector = {
-  id: string; name: string; rationale: string;
+  id: string;
+  name: string;
+  rationale: string;
   severity: "low" | "medium" | "high" | "critical";
-  target_path?: string; es_query: any;
-  match_count?: number; match_count_clean?: number;
+  target_path?: string;
+  es_query: any;
+  match_count?: number;
+  match_count_clean?: number;
   offenders?: Offender[];
 };
 
@@ -48,11 +75,31 @@ const sevColor: Record<string, string> = {
 };
 
 const classBadge: Record<Offender["classification"], { cls: string; icon: any; label: string }> = {
-  verified_bot: { cls: "bg-emerald-500/10 text-emerald-400 border-emerald-500/30", icon: ShieldCheck, label: "Verified bot" },
-  malicious:    { cls: "bg-red-500/10 text-red-400 border-red-500/30", icon: AlertTriangle, label: "Malicious" },
-  suspicious:   { cls: "bg-orange-500/10 text-orange-400 border-orange-500/30", icon: ShieldAlert, label: "Suspicious" },
-  unknown:      { cls: "bg-muted text-muted-foreground border-border", icon: HelpCircle, label: "Unknown" },
-  benign:       { cls: "bg-blue-500/10 text-blue-400 border-blue-500/30", icon: ShieldCheck, label: "Benign" },
+  verified_bot: {
+    cls: "bg-emerald-500/10 text-emerald-400 border-emerald-500/30",
+    icon: ShieldCheck,
+    label: "Verified bot",
+  },
+  malicious: {
+    cls: "bg-red-500/10 text-red-400 border-red-500/30",
+    icon: AlertTriangle,
+    label: "Malicious",
+  },
+  suspicious: {
+    cls: "bg-orange-500/10 text-orange-400 border-orange-500/30",
+    icon: ShieldAlert,
+    label: "Suspicious",
+  },
+  unknown: {
+    cls: "bg-muted text-muted-foreground border-border",
+    icon: HelpCircle,
+    label: "Unknown",
+  },
+  benign: {
+    cls: "bg-blue-500/10 text-blue-400 border-blue-500/30",
+    icon: ShieldCheck,
+    label: "Benign",
+  },
 };
 
 function OnboardPage() {
@@ -71,10 +118,13 @@ function OnboardPage() {
   const [historyOpen, setHistoryOpen] = useState(false);
 
   const mut = useMutation({
-    mutationFn: () => fnActivate({ data: { siteUrl, esEndpoint: endpoint, esApiKey: apiKey, indexPattern } }),
+    mutationFn: () =>
+      fnActivate({ data: { siteUrl, esEndpoint: endpoint, esApiKey: apiKey, indexPattern } }),
     onSuccess: (r) => {
       if (r.ok) {
-        toast.success("Chaff is live", { description: `${r.detectors.length} custom detectors deployed.` });
+        toast.success("Chaff is live", {
+          description: `${r.detectors.length} custom detectors deployed.`,
+        });
         existing.refetch();
         qc.invalidateQueries({ queryKey: ["sessions"] });
       } else {
@@ -87,8 +137,13 @@ function OnboardPage() {
   const clearMut = useMutation({
     mutationFn: () => fnClear(),
     onSuccess: () => {
-      toast.success("Session cleared", { description: "Saved to history. You can restore it anytime." });
-      setSiteUrl(""); setEndpoint(""); setApiKey(""); setIndexPattern("logs-*");
+      toast.success("Session cleared", {
+        description: "Saved to history. You can restore it anytime.",
+      });
+      setSiteUrl("");
+      setEndpoint("");
+      setApiKey("");
+      setIndexPattern("logs-*");
       mut.reset();
       existing.refetch();
       qc.invalidateQueries({ queryKey: ["sessions"] });
@@ -109,7 +164,8 @@ function OnboardPage() {
         <div>
           <h1 className="font-display text-4xl tracking-tight">Activate Chaff</h1>
           <p className="mt-1 text-sm text-muted-foreground max-w-2xl">
-            Two inputs. Our agent scans your site, learns your log schema, and writes a custom bot-detection pack tailored to your exact routes.
+            Two inputs. Our agent scans your site, learns your log schema, and writes a custom
+            bot-detection pack tailored to your exact routes.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -122,7 +178,12 @@ function OnboardPage() {
             </Hint>
           )}
           <Hint label="Browse and restore any past session. Each one keeps its own site, ES connection, and detector pack.">
-            <Button variant="outline" size="sm" onClick={() => setHistoryOpen(true)} className="gap-1.5">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setHistoryOpen(true)}
+              className="gap-1.5"
+            >
               <History className="h-3.5 w-3.5" /> History
             </Button>
           </Hint>
@@ -135,7 +196,11 @@ function OnboardPage() {
                 disabled={clearMut.isPending}
                 className="gap-1.5"
               >
-                {clearMut.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                {clearMut.isPending ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Trash2 className="h-3.5 w-3.5" />
+                )}
                 Clear session
               </Button>
             </Hint>
@@ -167,7 +232,8 @@ function OnboardPage() {
               className="mt-2"
             />
             <p className="mt-1.5 text-[11px] text-muted-foreground">
-              Firecrawl maps your stack, login pages, and API surface — so detectors target YOUR routes.
+              Firecrawl maps your stack, login pages, and API surface — so detectors target YOUR
+              routes.
             </p>
           </div>
 
@@ -228,8 +294,17 @@ function OnboardPage() {
             No agent, no snippet, no install. We never write to your cluster.
           </p>
           <Hint label="Recon your site, sample your index, then generate + test a custom detector pack against the last 24h of logs.">
-            <Button onClick={() => mut.mutate()} disabled={!canActivate} size="lg" className="gap-2">
-              {mut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
+            <Button
+              onClick={() => mut.mutate()}
+              disabled={!canActivate}
+              size="lg"
+              className="gap-2"
+            >
+              {mut.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Zap className="h-4 w-4" />
+              )}
               {mut.isPending ? "Activating…" : "Activate Chaff"}
             </Button>
           </Hint>
@@ -265,12 +340,15 @@ function OnboardPage() {
                   <Eye className="h-3.5 w-3.5" /> What the agent learned about your site
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="font-display text-xl">{result.recon.title ?? result.recon.url}</span>
+                  <span className="font-display text-xl">
+                    {result.recon.title ?? result.recon.url}
+                  </span>
                   <Badge variant="secondary">{result.recon.stack.label}</Badge>
                 </div>
               </div>
               <div className="text-right text-xs text-muted-foreground">
-                {result.recon.pageCount} links mapped<br />
+                {result.recon.pageCount} links mapped
+                <br />
                 {result.recon.suspectedSurface.length} sensitive paths flagged
               </div>
             </div>
@@ -282,7 +360,10 @@ function OnboardPage() {
                 </div>
                 <div className="grid md:grid-cols-2 gap-1.5">
                   {result.recon.suspectedSurface.map((s) => (
-                    <div key={s.path} className="flex items-start gap-2 text-sm bg-background/40 rounded px-2.5 py-1.5">
+                    <div
+                      key={s.path}
+                      className="flex items-start gap-2 text-sm bg-background/40 rounded px-2.5 py-1.5"
+                    >
                       <code className="font-mono text-xs">{s.path}</code>
                       <span className="text-xs text-muted-foreground truncate">{s.reason}</span>
                     </div>
@@ -306,17 +387,24 @@ function OnboardPage() {
                 <div className="text-xs uppercase tracking-wider text-muted-foreground mb-1 flex items-center gap-2">
                   <Crosshair className="h-3.5 w-3.5" /> Custom detector pack
                 </div>
-                <h3 className="font-display text-2xl">{result.detectors.length} rules written for {new URL(result.recon.url).hostname}</h3>
+                <h3 className="font-display text-2xl">
+                  {result.detectors.length} rules written for {new URL(result.recon.url).hostname}
+                </h3>
               </div>
               <div className="flex items-center gap-2">
                 <BlocklistExport />
-                <Link to="/app/dashboard" className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline">
+                <Link
+                  to="/app/dashboard"
+                  className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline"
+                >
                   Open live console <ArrowRight className="h-3.5 w-3.5" />
                 </Link>
               </div>
             </div>
             <div className="space-y-2">
-              {result.detectors.map((d) => <DetectorRow key={d.id} d={d} />)}
+              {result.detectors.map((d) => (
+                <DetectorRow key={d.id} d={d} />
+              ))}
             </div>
           </Card>
         </>
@@ -332,7 +420,9 @@ function OnboardPage() {
             <BlocklistExport />
           </div>
           <div className="space-y-2">
-            {(((live.detector_pack as any)?.detectors ?? []) as Detector[]).map((d) => <DetectorRow key={d.id} d={d} />)}
+            {(((live.detector_pack as any)?.detectors ?? []) as Detector[]).map((d) => (
+              <DetectorRow key={d.id} d={d} />
+            ))}
           </div>
           <p className="mt-4 text-xs text-muted-foreground">
             Re-activate above to regenerate detectors after site changes.
@@ -358,13 +448,21 @@ function BlocklistExport() {
         </Button>
       </Hint>
       {open && (
-        <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setOpen(false)}>
-          <Card className="bg-surface border-border p-5 max-w-3xl w-full max-h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={() => setOpen(false)}
+        >
+          <Card
+            className="bg-surface border-border p-5 max-w-3xl w-full max-h-[80vh] flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between mb-3">
               <div>
                 <h3 className="font-display text-xl">Deployable blocklist</h3>
                 <p className="text-xs text-muted-foreground">
-                  {data ? `${data.count} IPs · confidence ≥ 40 · verified bots excluded` : "Loading…"}
+                  {data
+                    ? `${data.count} IPs · confidence ≥ 40 · verified bots excluded`
+                    : "Loading…"}
                 </p>
               </div>
               <div className="flex gap-1">
@@ -383,7 +481,9 @@ function BlocklistExport() {
               {q.isLoading ? "Generating…" : text || "No blockable offenders yet."}
             </pre>
             <div className="mt-3 flex justify-end gap-2">
-              <Button variant="ghost" size="sm" onClick={() => setOpen(false)}>Close</Button>
+              <Button variant="ghost" size="sm" onClick={() => setOpen(false)}>
+                Close
+              </Button>
               <Button
                 size="sm"
                 disabled={!text}
@@ -413,18 +513,25 @@ function DetectorRow({ d }: { d: Detector }) {
         onClick={() => setOpen((v) => !v)}
         className="w-full px-4 py-3 flex items-center gap-3 text-left hover:bg-background/60 transition"
       >
-        <Badge variant="outline" className={`shrink-0 capitalize ${sevColor[d.severity] ?? ""}`}>{d.severity}</Badge>
+        <Badge variant="outline" className={`shrink-0 capitalize ${sevColor[d.severity] ?? ""}`}>
+          {d.severity}
+        </Badge>
         <div className="flex-1 min-w-0">
           <div className="font-medium text-sm truncate">{d.name}</div>
           <div className="text-xs text-muted-foreground truncate">{d.rationale}</div>
         </div>
         {typeof d.match_count === "number" && (
           <div className="shrink-0 text-right">
-            <div className={`font-mono text-sm ${clean > 0 ? "text-amber-400" : "text-muted-foreground"}`}>
+            <div
+              className={`font-mono text-sm ${clean > 0 ? "text-amber-400" : "text-muted-foreground"}`}
+            >
               {clean.toLocaleString()}
             </div>
             <div className="text-[10px] text-muted-foreground uppercase tracking-wider">
-              threats {excluded > 0 && <span className="text-emerald-400">· −{excluded.toLocaleString()} verified</span>}
+              threats{" "}
+              {excluded > 0 && (
+                <span className="text-emerald-400">· −{excluded.toLocaleString()} verified</span>
+              )}
             </div>
           </div>
         )}
@@ -439,14 +546,20 @@ function DetectorRow({ d }: { d: Detector }) {
           )}
           {d.offenders && d.offenders.length > 0 && (
             <div>
-              <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5">Top offenders (enriched)</div>
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5">
+                Top offenders (enriched)
+              </div>
               <div className="space-y-1">
-                {d.offenders.slice(0, 6).map((o) => <OffenderRow key={o.ip} o={o} />)}
+                {d.offenders.slice(0, 6).map((o) => (
+                  <OffenderRow key={o.ip} o={o} />
+                ))}
               </div>
             </div>
           )}
           <details>
-            <summary className="text-[10px] uppercase tracking-wider text-muted-foreground cursor-pointer">Raw ES query</summary>
+            <summary className="text-[10px] uppercase tracking-wider text-muted-foreground cursor-pointer">
+              Raw ES query
+            </summary>
             <pre className="mt-2 font-mono text-[11px] text-foreground/80 overflow-auto max-h-64">
               {JSON.stringify(d.es_query, null, 2)}
             </pre>
@@ -469,15 +582,27 @@ function OffenderRow({ o }: { o: Offender }) {
       <span className="text-muted-foreground truncate flex-1" title={o.reasons.join(" · ")}>
         {o.rdns ?? "no rDNS"} {o.reasons[0] && <span>· {o.reasons[0]}</span>}
       </span>
-      <span className="font-mono text-muted-foreground shrink-0">{o.eventCount.toLocaleString()}×</span>
-      <span className={`font-mono shrink-0 ${o.confidence >= 70 ? "text-red-400" : o.confidence >= 40 ? "text-amber-400" : "text-muted-foreground"}`}>
+      <span className="font-mono text-muted-foreground shrink-0">
+        {o.eventCount.toLocaleString()}×
+      </span>
+      <span
+        className={`font-mono shrink-0 ${o.confidence >= 70 ? "text-red-400" : o.confidence >= 40 ? "text-amber-400" : "text-muted-foreground"}`}
+      >
         {o.confidence}
       </span>
     </div>
   );
 }
 
-function PipelineSteps({ isPending, steps, failed }: { isPending: boolean; steps: { name: string; ok: boolean; detail?: string }[]; failed: boolean }) {
+function PipelineSteps({
+  isPending,
+  steps,
+  failed,
+}: {
+  isPending: boolean;
+  steps: { name: string; ok: boolean; detail?: string }[];
+  failed: boolean;
+}) {
   const total = 5;
   const completed = steps.length;
   return (
@@ -493,12 +618,20 @@ function PipelineSteps({ isPending, steps, failed }: { isPending: boolean; steps
               {isDone && <CheckCircle2 className="h-4 w-4 text-emerald-400" />}
               {isFail && <XCircle className="h-4 w-4 text-destructive" />}
               {isCurrent && <Loader2 className="h-4 w-4 animate-spin text-primary" />}
-              {!isDone && !isFail && !isCurrent && <span className="h-2 w-2 rounded-full bg-muted-foreground/30" />}
+              {!isDone && !isFail && !isCurrent && (
+                <span className="h-2 w-2 rounded-full bg-muted-foreground/30" />
+              )}
             </span>
-            <span className={isDone ? "text-foreground" : isCurrent ? "text-foreground" : "text-muted-foreground"}>
+            <span
+              className={
+                isDone ? "text-foreground" : isCurrent ? "text-foreground" : "text-muted-foreground"
+              }
+            >
               {step?.name ?? defaultPendingSteps()[i].name}
             </span>
-            {step?.detail && <span className="text-xs text-muted-foreground font-mono">— {step.detail}</span>}
+            {step?.detail && (
+              <span className="text-xs text-muted-foreground font-mono">— {step.detail}</span>
+            )}
           </li>
         );
       })}
@@ -528,7 +661,9 @@ function SchemaPill({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded border border-border bg-background/40 px-2.5 py-2">
       <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</div>
-      <div className="font-mono text-[11px] truncate" title={value}>{value}</div>
+      <div className="font-mono text-[11px] truncate" title={value}>
+        {value}
+      </div>
     </div>
   );
 }
@@ -551,14 +686,26 @@ function HistoryPanel({ onClose, onRestored }: { onClose: () => void; onRestored
   });
   const sessions = q.data?.sessions ?? [];
   return (
-    <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
-      <Card className="bg-surface border-border p-5 max-w-2xl w-full max-h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+    <div
+      className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4"
+      onClick={onClose}
+    >
+      <Card
+        className="bg-surface border-border p-5 max-w-2xl w-full max-h-[80vh] flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h3 className="font-display text-xl flex items-center gap-2"><History className="h-4 w-4" /> Session history</h3>
-            <p className="text-xs text-muted-foreground">Past activations. Click restore to reload that exact session.</p>
+            <h3 className="font-display text-xl flex items-center gap-2">
+              <History className="h-4 w-4" /> Session history
+            </h3>
+            <p className="text-xs text-muted-foreground">
+              Past activations. Click restore to reload that exact session.
+            </p>
           </div>
-          <Button variant="ghost" size="sm" onClick={onClose}>Close</Button>
+          <Button variant="ghost" size="sm" onClick={onClose}>
+            Close
+          </Button>
         </div>
         <div className="flex-1 overflow-auto space-y-2">
           {q.isLoading && <div className="text-sm text-muted-foreground">Loading…</div>}
@@ -566,7 +713,10 @@ function HistoryPanel({ onClose, onRestored }: { onClose: () => void; onRestored
             <div className="text-sm text-muted-foreground py-8 text-center">No sessions yet.</div>
           )}
           {sessions.map((s) => (
-            <div key={s.id} className="rounded-md border border-border bg-background/40 p-3 flex items-center gap-3">
+            <div
+              key={s.id}
+              className="rounded-md border border-border bg-background/40 p-3 flex items-center gap-3"
+            >
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <span className="font-medium text-sm truncate">{s.label}</span>
@@ -591,7 +741,11 @@ function HistoryPanel({ onClose, onRestored }: { onClose: () => void; onRestored
                   onClick={() => restore.mutate(s.id)}
                   className="gap-1.5 shrink-0"
                 >
-                  {restore.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RotateCcw className="h-3.5 w-3.5" />}
+                  {restore.isPending ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <RotateCcw className="h-3.5 w-3.5" />
+                  )}
                   Restore
                 </Button>
               )}

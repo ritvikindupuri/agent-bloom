@@ -21,7 +21,14 @@ export type BeaconSignals = {
     pdfViewerEnabled?: boolean;
     hasChrome?: boolean;
   };
-  screen?: { w?: number; h?: number; avail_w?: number; avail_h?: number; dpr?: number; color_depth?: number };
+  screen?: {
+    w?: number;
+    h?: number;
+    avail_w?: number;
+    avail_h?: number;
+    dpr?: number;
+    color_depth?: number;
+  };
   tz?: { name?: string; offset?: number };
   canvas_hash?: string;
   webgl_vendor?: string;
@@ -114,7 +121,13 @@ export function scoreBeacon(s: BeaconSignals, opts: { honeypot: boolean }): Fing
     reasons.push("mouse path too straight (entropy " + (b.mouse_entropy ?? 0) + ")");
     score += 25;
   }
-  if (s.screen && (s.screen.w ?? 0) > 0 && s.screen.w === s.screen.avail_w && s.screen.h === s.screen.avail_h && s.screen.dpr === 1) {
+  if (
+    s.screen &&
+    (s.screen.w ?? 0) > 0 &&
+    s.screen.w === s.screen.avail_w &&
+    s.screen.h === s.screen.avail_h &&
+    s.screen.dpr === 1
+  ) {
     // headless default viewport
     if (s.screen.w === 800 || s.screen.w === 1024 || s.screen.w === 1920) {
       // common headless defaults; only a mild signal
@@ -133,10 +146,7 @@ export function scoreBeacon(s: BeaconSignals, opts: { honeypot: boolean }): Fing
 
   score = Math.max(0, Math.min(100, score));
   const verdict: Verdict =
-    score >= 95 ? "certified_bot" :
-    score >= 60 ? "bot" :
-    score >= 30 ? "suspect" :
-    "human";
+    score >= 95 ? "certified_bot" : score >= 60 ? "bot" : score >= 30 ? "suspect" : "human";
 
   // Stable cluster signature (drop UA version noise, focus on render/device fingerprint)
   const sigInput = [

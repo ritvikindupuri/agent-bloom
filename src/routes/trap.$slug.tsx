@@ -19,7 +19,9 @@ function TrapPage() {
     s.src = "/beacon.js";
     s.async = true;
     document.body.appendChild(s);
-    return () => { document.body.removeChild(s); };
+    return () => {
+      document.body.removeChild(s);
+    };
   }, [slug]);
 
   // Honeypot page: looks like real pricing content (lures scrapers / LLM crawlers).
@@ -37,20 +39,38 @@ function TrapPage() {
       </header>
       <main className="mx-auto max-w-5xl px-6 py-16">
         <h1 className="text-4xl font-semibold tracking-tight">Pricing</h1>
-        <p className="mt-3 text-neutral-600 max-w-xl">Transparent plans for teams of any size. Choose monthly or annual billing.</p>
+        <p className="mt-3 text-neutral-600 max-w-xl">
+          Transparent plans for teams of any size. Choose monthly or annual billing.
+        </p>
         <div id="pricing" className="mt-10 grid gap-6 md:grid-cols-3">
           {[
-            { name: "Starter", price: "$29", features: ["10 projects", "Email support", "Basic analytics"] },
-            { name: "Team", price: "$99", features: ["Unlimited projects", "Priority support", "Advanced analytics", "SSO"] },
-            { name: "Enterprise", price: "Custom", features: ["Dedicated success", "SLA 99.99%", "Audit logs", "Custom DPA"] },
+            {
+              name: "Starter",
+              price: "$29",
+              features: ["10 projects", "Email support", "Basic analytics"],
+            },
+            {
+              name: "Team",
+              price: "$99",
+              features: ["Unlimited projects", "Priority support", "Advanced analytics", "SSO"],
+            },
+            {
+              name: "Enterprise",
+              price: "Custom",
+              features: ["Dedicated success", "SLA 99.99%", "Audit logs", "Custom DPA"],
+            },
           ].map((p) => (
             <div key={p.name} className="rounded-2xl border p-6">
               <div className="text-sm uppercase tracking-wider text-neutral-500">{p.name}</div>
               <div className="mt-2 text-3xl font-semibold">{p.price}</div>
               <ul className="mt-4 space-y-1.5 text-sm text-neutral-700">
-                {p.features.map((f) => <li key={f}>• {f}</li>)}
+                {p.features.map((f) => (
+                  <li key={f}>• {f}</li>
+                ))}
               </ul>
-              <button className="mt-6 w-full rounded-md bg-neutral-900 text-white px-3 py-2 text-sm">Choose {p.name}</button>
+              <button className="mt-6 w-full rounded-md bg-neutral-900 text-white px-3 py-2 text-sm">
+                Choose {p.name}
+              </button>
             </div>
           ))}
         </div>

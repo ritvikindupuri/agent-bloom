@@ -2,7 +2,12 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useRef, useState } from "react";
-import { listConversations, getConversation, sendAgentMessage, deleteConversation } from "@/lib/agent.functions";
+import {
+  listConversations,
+  getConversation,
+  sendAgentMessage,
+  deleteConversation,
+} from "@/lib/agent.functions";
 import { listConnections } from "@/lib/es.functions";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -46,7 +51,8 @@ function AgentPage() {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const send = useMutation({
-    mutationFn: (text: string) => fnSend({ data: { conversationId: activeId ?? undefined, message: text } }),
+    mutationFn: (text: string) =>
+      fnSend({ data: { conversationId: activeId ?? undefined, message: text } }),
     onSuccess: (r) => {
       setActiveId(r.conversationId);
       qc.invalidateQueries({ queryKey: ["agent-convs"] });
@@ -58,7 +64,10 @@ function AgentPage() {
 
   const del = useMutation({
     mutationFn: (id: string) => fnDel({ data: { id } }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["agent-convs"] }); setActiveId(null); },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["agent-convs"] });
+      setActiveId(null);
+    },
   });
 
   useEffect(() => {
@@ -75,7 +84,9 @@ function AgentPage() {
     setInput(text);
     // focus textarea after fill
     requestAnimationFrame(() => {
-      const ta = document.querySelector<HTMLTextAreaElement>('textarea[placeholder^="Ask the agent"]');
+      const ta = document.querySelector<HTMLTextAreaElement>(
+        'textarea[placeholder^="Ask the agent"]',
+      );
       ta?.focus();
       ta?.setSelectionRange(text.length, text.length);
     });
@@ -104,8 +115,12 @@ function AgentPage() {
         <div className="mt-12 rounded-xl border border-dashed border-border bg-surface/30 p-16 text-center">
           <Bot className="h-8 w-8 mx-auto text-muted-foreground" />
           <h3 className="mt-4 font-display text-2xl">Agent needs your logs</h3>
-          <p className="mt-1 text-sm text-muted-foreground">Activate Chaff first so the agent has something to investigate.</p>
-          <Link to="/app/onboard"><Button className="mt-5">Activate Chaff</Button></Link>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Activate Chaff first so the agent has something to investigate.
+          </p>
+          <Link to="/app/onboard">
+            <Button className="mt-5">Activate Chaff</Button>
+          </Link>
         </div>
       </div>
     );
@@ -115,8 +130,16 @@ function AgentPage() {
     <div className="flex h-screen">
       <aside className="w-64 shrink-0 border-r border-border/60 bg-surface/30 flex flex-col">
         <div className="p-3 border-b border-border/60">
-          <Hint label="Start a fresh investigation. Each one has its own conversation thread and tool history." side="right">
-            <Button variant="outline" size="sm" className="w-full justify-start bg-background/40" onClick={() => setActiveId(null)}>
+          <Hint
+            label="Start a fresh investigation. Each one has its own conversation thread and tool history."
+            side="right"
+          >
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full justify-start bg-background/40"
+              onClick={() => setActiveId(null)}
+            >
               <Plus className="h-4 w-4 mr-2" /> New investigation
             </Button>
           </Hint>
@@ -151,9 +174,14 @@ function AgentPage() {
         <div className="h-14 px-6 border-b border-border/60 flex items-center gap-2">
           <Sparkles className="h-4 w-4 text-primary" />
           <span className="font-display text-lg">Chaff Agent</span>
-          <span className="text-xs text-muted-foreground">· Gemini · live tools over your index</span>
+          <span className="text-xs text-muted-foreground">
+            · Gemini · live tools over your index
+          </span>
           <div className="ml-auto">
-            <Hint label="Generate a professionally formatted PDF report of this entire session — executive summary, full transcript, tool calls, and conclusion." side="bottom">
+            <Hint
+              label="Generate a professionally formatted PDF report of this entire session — executive summary, full transcript, tool calls, and conclusion."
+              side="bottom"
+            >
               <Button variant="outline" size="sm" onClick={exportPdf} disabled={!canExport}>
                 <FileDown className="h-4 w-4 mr-2" /> Download PDF report
               </Button>
@@ -175,13 +203,21 @@ function AgentPage() {
 
         <div className="border-t border-border/60 p-4">
           <form
-            onSubmit={(e) => { e.preventDefault(); submit(input); }}
+            onSubmit={(e) => {
+              e.preventDefault();
+              submit(input);
+            }}
             className="mx-auto max-w-3xl flex items-end gap-2 rounded-xl border border-border bg-surface/60 p-2 focus-within:border-ring transition"
           >
             <Textarea
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submit(input); } }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  submit(input);
+                }
+              }}
               placeholder="Ask the agent to investigate your traffic…"
               rows={1}
               className="resize-none border-0 bg-transparent shadow-none focus-visible:ring-0 min-h-[40px] max-h-40"
@@ -203,11 +239,16 @@ function Welcome({ onPick }: { onPick: (s: string) => void }) {
     <div className="text-center py-10">
       <Bot className="h-10 w-10 mx-auto text-primary" />
       <h2 className="mt-4 font-display text-3xl">What should we sift today?</h2>
-      <p className="mt-2 text-sm text-muted-foreground">Try one of these, or ask anything about your logs.</p>
+      <p className="mt-2 text-sm text-muted-foreground">
+        Try one of these, or ask anything about your logs.
+      </p>
       <div className="mt-6 grid gap-2 sm:grid-cols-2">
         {SUGGESTIONS.map((s) => (
-          <button key={s} onClick={() => onPick(s)}
-            className="text-left rounded-lg border border-border bg-surface/40 px-4 py-3 text-sm hover:border-ring transition">
+          <button
+            key={s}
+            onClick={() => onPick(s)}
+            className="text-left rounded-lg border border-border bg-surface/40 px-4 py-3 text-sm hover:border-ring transition"
+          >
             {s}
           </button>
         ))}
@@ -231,7 +272,8 @@ function MessageBubble({ message }: { message: any }) {
     return (
       <details className="rounded-lg border border-border bg-surface/30 text-xs">
         <summary className="cursor-pointer select-none flex items-center gap-2 px-3 py-2 text-muted-foreground hover:text-foreground">
-          <Wrench className="h-3 w-3" /> tool: <code className="font-mono">{message.tool_name}</code>
+          <Wrench className="h-3 w-3" /> tool:{" "}
+          <code className="font-mono">{message.tool_name}</code>
           {r?.error && <span className="text-destructive">(error)</span>}
           {r?.recorded && <span className="text-primary">→ threat recorded</span>}
         </summary>
@@ -248,11 +290,13 @@ function MessageBubble({ message }: { message: any }) {
         <div className="h-7 w-7 rounded-md bg-primary/15 text-primary flex items-center justify-center shrink-0 mt-0.5">
           <Bot className="h-4 w-4" />
         </div>
-        <div className="prose prose-invert prose-sm max-w-none flex-1
+        <div
+          className="prose prose-invert prose-sm max-w-none flex-1
           prose-headings:font-display prose-headings:tracking-tight
           prose-p:my-2 prose-code:font-mono prose-code:bg-surface prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-foreground prose-code:before:content-none prose-code:after:content-none
           prose-pre:bg-surface prose-pre:border prose-pre:border-border
-          prose-a:text-primary">
+          prose-a:text-primary"
+        >
           <ReactMarkdown>{message.content}</ReactMarkdown>
         </div>
       </div>

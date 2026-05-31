@@ -1,7 +1,18 @@
 // IP enrichment: reverse-DNS verified-bot detection + heuristic confidence scoring.
 // Worker-safe: uses Cloudflare DNS-over-HTTPS, no Node `dns` module.
 
-export type VerifiedBotKind = "googlebot" | "bingbot" | "applebot" | "duckduckbot" | "yandexbot" | "facebookbot" | "twitterbot" | "linkedinbot" | "ahrefsbot" | "semrushbot" | null;
+export type VerifiedBotKind =
+  | "googlebot"
+  | "bingbot"
+  | "applebot"
+  | "duckduckbot"
+  | "yandexbot"
+  | "facebookbot"
+  | "twitterbot"
+  | "linkedinbot"
+  | "ahrefsbot"
+  | "semrushbot"
+  | null;
 
 export type IpEnrichment = {
   ip: string;
@@ -9,11 +20,11 @@ export type IpEnrichment = {
   verifiedBot: VerifiedBotKind;
   isDatacenter: boolean;
   isTor: boolean;
-  abuseScore: number | null;          // 0-100 from AbuseIPDB, null if not available
-  abuseReports: number | null;        // total abuse reports last 90d
-  usageType: string | null;           // "Data Center/Web Hosting/Transit", "Residential", etc.
+  abuseScore: number | null; // 0-100 from AbuseIPDB, null if not available
+  abuseReports: number | null; // total abuse reports last 90d
+  usageType: string | null; // "Data Center/Web Hosting/Transit", "Residential", etc.
   countryCode: string | null;
-  confidence: number;       // 0-100 — likelihood this IP is a malicious bot
+  confidence: number; // 0-100 — likelihood this IP is a malicious bot
   classification: "verified_bot" | "malicious" | "suspicious" | "benign" | "unknown";
   reasons: string[];
 };
@@ -37,15 +48,25 @@ const VERIFIED_BOT_SUFFIXES: { suffix: string; kind: NonNullable<VerifiedBotKind
 
 // Common datacenter / hosting-provider rDNS patterns. Heuristic — not exhaustive.
 const DATACENTER_PATTERNS = [
-  /\.amazonaws\.com$/i, /\.compute\.amazonaws\.com$/i,
-  /\.googleusercontent\.com$/i, /\.bc\.googleusercontent\.com$/i,
-  /\.azure\.com$/i, /\.cloudapp\.net$/i,
-  /\.digitalocean\.com$/i, /\.do-user\..*/i,
-  /\.linode\.com$/i, /\.members\.linode\.com$/i,
-  /\.vultr\.com$/i, /\.vultrusercontent\.com$/i,
-  /\.hetzner\.de$/i, /\.your-server\.de$/i,
-  /\.ovh\.net$/i, /\.ovh\.ca$/i, /\.kimsufi\.com$/i,
-  /\.contabo\.net$/i, /\.contabo\.host$/i,
+  /\.amazonaws\.com$/i,
+  /\.compute\.amazonaws\.com$/i,
+  /\.googleusercontent\.com$/i,
+  /\.bc\.googleusercontent\.com$/i,
+  /\.azure\.com$/i,
+  /\.cloudapp\.net$/i,
+  /\.digitalocean\.com$/i,
+  /\.do-user\..*/i,
+  /\.linode\.com$/i,
+  /\.members\.linode\.com$/i,
+  /\.vultr\.com$/i,
+  /\.vultrusercontent\.com$/i,
+  /\.hetzner\.de$/i,
+  /\.your-server\.de$/i,
+  /\.ovh\.net$/i,
+  /\.ovh\.ca$/i,
+  /\.kimsufi\.com$/i,
+  /\.contabo\.net$/i,
+  /\.contabo\.host$/i,
   /\.scaleway\.com$/i,
   /\.oraclecloud\.com$/i,
 ];
@@ -74,11 +95,7 @@ function expandIpv6(ip: string): string {
   const headParts = head ? head.split(":") : [];
   const tailParts = tail ? tail.split(":") : [];
   const fillCount = 8 - headParts.length - tailParts.length;
-  const parts = [
-    ...headParts,
-    ...Array(Math.max(fillCount, 0)).fill("0"),
-    ...tailParts,
-  ];
+  const parts = [...headParts, ...Array(Math.max(fillCount, 0)).fill("0"), ...tailParts];
   return parts.map((p) => p.padStart(4, "0")).join(":");
 }
 
@@ -133,9 +150,21 @@ function isTor(host: string): boolean {
 }
 
 const SUSPICIOUS_UA_PATTERNS = [
-  /python-requests/i, /\bcurl\//i, /Go-http-client/i, /libwww/i,
-  /scrapy/i, /HeadlessChrome/i, /PhantomJS/i, /node-fetch/i, /axios/i,
-  /\bwget\b/i, /Java\//i, /okhttp/i, /aiohttp/i, /httpx/i, /selenium/i,
+  /python-requests/i,
+  /\bcurl\//i,
+  /Go-http-client/i,
+  /libwww/i,
+  /scrapy/i,
+  /HeadlessChrome/i,
+  /PhantomJS/i,
+  /node-fetch/i,
+  /axios/i,
+  /\bwget\b/i,
+  /Java\//i,
+  /okhttp/i,
+  /aiohttp/i,
+  /httpx/i,
+  /selenium/i,
 ];
 
 export function scoreUserAgent(ua: string | null | undefined): { score: number; reason?: string } {
@@ -156,7 +185,12 @@ type AbuseInfo = {
 
 async function abuseIpdbLookup(ip: string): Promise<AbuseInfo> {
   const key = process.env.ABUSEIPDB_API_KEY;
-  const empty: AbuseInfo = { abuseScore: null, abuseReports: null, usageType: null, countryCode: null };
+  const empty: AbuseInfo = {
+    abuseScore: null,
+    abuseReports: null,
+    usageType: null,
+    countryCode: null,
+  };
   if (!key) return empty;
   try {
     const res = await fetch(
@@ -198,15 +232,25 @@ export async function enrichIp(
 
   // Apply reputation signals (works even when rDNS fails)
   if (abuse.abuseScore !== null) {
-    if (abuse.abuseScore >= 75) { reasons.push(`AbuseIPDB score ${abuse.abuseScore}/100 (${abuse.abuseReports ?? 0} reports)`); confidence += 35; }
-    else if (abuse.abuseScore >= 25) { reasons.push(`AbuseIPDB score ${abuse.abuseScore}/100`); confidence += 15; }
-    else if (abuse.abuseScore > 0) { reasons.push(`AbuseIPDB score ${abuse.abuseScore}/100`); confidence += 5; }
+    if (abuse.abuseScore >= 75) {
+      reasons.push(`AbuseIPDB score ${abuse.abuseScore}/100 (${abuse.abuseReports ?? 0} reports)`);
+      confidence += 35;
+    } else if (abuse.abuseScore >= 25) {
+      reasons.push(`AbuseIPDB score ${abuse.abuseScore}/100`);
+      confidence += 15;
+    } else if (abuse.abuseScore > 0) {
+      reasons.push(`AbuseIPDB score ${abuse.abuseScore}/100`);
+      confidence += 5;
+    }
   }
   if (abuse.usageType) {
     const ut = abuse.usageType.toLowerCase();
-    if (ut.includes("data center") || ut.includes("hosting")) { reasons.push(`usage type: ${abuse.usageType}`); confidence += 10; }
-    else if (ut.includes("residential") && abuse.abuseScore && abuse.abuseScore > 25) {
-      reasons.push(`residential proxy suspected (${abuse.usageType}, abuse ${abuse.abuseScore})`); confidence += 20;
+    if (ut.includes("data center") || ut.includes("hosting")) {
+      reasons.push(`usage type: ${abuse.usageType}`);
+      confidence += 10;
+    } else if (ut.includes("residential") && abuse.abuseScore && abuse.abuseScore > 25) {
+      reasons.push(`residential proxy suspected (${abuse.usageType}, abuse ${abuse.abuseScore})`);
+      confidence += 20;
     }
   }
 
@@ -218,10 +262,21 @@ export async function enrichIp(
     confidence += uaScore.score;
     confidence = Math.max(0, Math.min(100, confidence));
     return {
-      ip, rdns: null, verifiedBot: null, isDatacenter: false, isTor: false,
+      ip,
+      rdns: null,
+      verifiedBot: null,
+      isDatacenter: false,
+      isTor: false,
       ...abuse,
       confidence,
-      classification: confidence >= 70 ? "malicious" : confidence >= 40 ? "suspicious" : confidence >= 15 ? "unknown" : "benign",
+      classification:
+        confidence >= 70
+          ? "malicious"
+          : confidence >= 40
+            ? "suspicious"
+            : confidence >= 15
+              ? "unknown"
+              : "benign",
       reasons,
     };
   }
@@ -232,22 +287,33 @@ export async function enrichIp(
     const forwardIps = await forwardLookup(rdns);
     if (forwardIps.includes(ip)) {
       return {
-        ip, rdns, verifiedBot: claimedBot,
-        isDatacenter: false, isTor: false,
+        ip,
+        rdns,
+        verifiedBot: claimedBot,
+        isDatacenter: false,
+        isTor: false,
         ...abuse,
         confidence: 0,
         classification: "verified_bot",
         reasons: [`forward-confirmed ${claimedBot} (${rdns})`],
       };
     }
-    reasons.push(`spoofed PTR claiming ${claimedBot} (${rdns}) — forward lookup did NOT return ${ip}`);
+    reasons.push(
+      `spoofed PTR claiming ${claimedBot} (${rdns}) — forward lookup did NOT return ${ip}`,
+    );
     confidence += 40;
   }
 
   const dc = isDatacenter(rdns);
   const tor = isTor(rdns);
-  if (dc) { reasons.push(`datacenter origin (${rdns})`); confidence += 20; }
-  if (tor) { reasons.push(`Tor exit node (${rdns})`); confidence += 35; }
+  if (dc) {
+    reasons.push(`datacenter origin (${rdns})`);
+    confidence += 20;
+  }
+  if (tor) {
+    reasons.push(`Tor exit node (${rdns})`);
+    confidence += 35;
+  }
   if (!dc && !tor && !claimedBot) reasons.push(`residential/ISP origin (${rdns})`);
 
   const uaScore = scoreUserAgent(context.sampleUserAgent);
@@ -256,11 +322,25 @@ export async function enrichIp(
 
   confidence = Math.max(0, Math.min(100, confidence));
   const classification: IpEnrichment["classification"] =
-    confidence >= 70 ? "malicious" :
-    confidence >= 40 ? "suspicious" :
-    confidence >= 15 ? "unknown" : "benign";
+    confidence >= 70
+      ? "malicious"
+      : confidence >= 40
+        ? "suspicious"
+        : confidence >= 15
+          ? "unknown"
+          : "benign";
 
-  return { ip, rdns, verifiedBot: null, isDatacenter: dc, isTor: tor, ...abuse, confidence, classification, reasons };
+  return {
+    ip,
+    rdns,
+    verifiedBot: null,
+    isDatacenter: dc,
+    isTor: tor,
+    ...abuse,
+    confidence,
+    classification,
+    reasons,
+  };
 }
 
 export async function enrichIps(
@@ -272,7 +352,12 @@ export async function enrichIps(
   const workers = Array.from({ length: Math.min(concurrency, queue.length) }, async () => {
     while (queue.length) {
       const item = queue.shift()!;
-      out.push(await enrichIp(item.ip, { eventCount: item.eventCount, sampleUserAgent: item.sampleUserAgent }));
+      out.push(
+        await enrichIp(item.ip, {
+          eventCount: item.eventCount,
+          sampleUserAgent: item.sampleUserAgent,
+        }),
+      );
     }
   });
   await Promise.all(workers);
