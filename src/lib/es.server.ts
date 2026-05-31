@@ -48,6 +48,7 @@ export async function esRequest<T = unknown>(
   path: string,
   init?: { method?: string; body?: unknown }
 ): Promise<T> {
+  assertSafeEsEndpoint(auth.endpoint);
   const url = `${normalizeEndpoint(auth.endpoint)}${path.startsWith("/") ? "" : "/"}${path}`;
   const res = await fetch(url, {
     method: init?.method ?? (init?.body ? "POST" : "GET"),
