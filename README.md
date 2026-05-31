@@ -147,6 +147,9 @@ With data flowing, it's time to investigate.
 2. Enter a target URL (your main website URL). Chaff will utilize Firecrawl to analyze your site's structure.
 3. Generate deceptive Trap pages (e.g., a fake `/admin/login` page). Deploy these traps on your site. Any traffic that hits these hidden URLs will be immediately flagged as malicious in your dashboard.
 
-### Step 6: Create Campaigns & Harvest Intel
+### Step 6: Create Campaigns & MCP
 - **Campaigns:** Navigate to the **Campaigns** tab to set up long-running monitors for specific endpoints, allowing you to track suspicious activity over days or weeks.
-- **Harvest:** Navigate to the **Harvest** tab to run deep IP intelligence gathering on the malicious IPs you have found, determining if they belong to VPNs, Datacenters, or Tor nodes.
+- **MCP:** Use the **MCP** tab to expose Chaff's threat intelligence context directly to external AI assistants (like Cursor), enabling you to ask your local IDE questions about active threats.
+
+### Step 7: Live View
+- **Live:** Click the **Live** tab to see real-time unaggregated log activity flowing directly from your Elasticsearch instance.
