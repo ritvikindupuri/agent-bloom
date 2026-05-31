@@ -66,7 +66,7 @@ function ThreatsPage() {
             <div className="max-w-3xl mx-auto space-y-4 text-sm text-muted-foreground">
               <p>
                 The threats tab is reserved for actionable, high-confidence evidence of malicious or
-                automated abuse. I record findings there when I detect:
+                automated abuse. Chaff records findings there when the agent detects:
               </p>
 
               <ul className="space-y-4 list-none pl-0">
@@ -140,7 +140,7 @@ function ThreatsPage() {
               </ul>
 
               <p className="mt-6 p-4 rounded bg-background/50 border border-border text-xs">
-                <strong className="text-foreground">How I report them:</strong> Each record includes
+                <strong className="text-foreground">How the agent reports them:</strong> Each record includes
                 the IP address, the specific User-Agent used, the total request count, and a summary
                 explaining why the behavior was deemed malicious versus a "good bot."
               </p>
