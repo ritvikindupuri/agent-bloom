@@ -14,7 +14,13 @@ function normalizeEndpoint(ep: string) {
 // resolution in a Worker, so we block by literal IP and known internal names.
 function isBlockedHostname(host: string): boolean {
   const h = host.toLowerCase().replace(/^\[|\]$/g, "");
-  if (h === "localhost" || h.endsWith(".localhost") || h.endsWith(".internal") || h.endsWith(".local")) return true;
+  if (
+    h === "localhost" ||
+    h.endsWith(".localhost") ||
+    h.endsWith(".internal") ||
+    h.endsWith(".local")
+  )
+    return true;
   if (h === "::1" || h.startsWith("::ffff:") || h === "0:0:0:0:0:0:0:1") return true;
   // IPv6 unique-local / link-local
   if (/^f[cd][0-9a-f]{2}:/i.test(h) || /^fe80:/i.test(h)) return true;
@@ -36,17 +42,20 @@ function isBlockedHostname(host: string): boolean {
 
 export function assertSafeEsEndpoint(endpoint: string): void {
   let u: URL;
-  try { u = new URL(endpoint); } catch { throw new Error("Invalid Elasticsearch endpoint URL"); }
+  try {
+    u = new URL(endpoint);
+  } catch {
+    throw new Error("Invalid Elasticsearch endpoint URL");
+  }
   if (u.protocol !== "https:") throw new Error("Elasticsearch endpoint must use https://");
   if (!u.hostname) throw new Error("Invalid Elasticsearch endpoint host");
   if (isBlockedHostname(u.hostname)) throw new Error("Elasticsearch endpoint host is not allowed");
 }
 
-
 export async function esRequest<T = unknown>(
   auth: EsAuth,
   path: string,
-  init?: { method?: string; body?: unknown }
+  init?: { method?: string; body?: unknown },
 ): Promise<T> {
   assertSafeEsEndpoint(auth.endpoint);
   const url = `${normalizeEndpoint(auth.endpoint)}${path.startsWith("/") ? "" : "/"}${path}`;
@@ -61,17 +70,24 @@ export async function esRequest<T = unknown>(
   });
   const text = await res.text();
   let parsed: unknown = null;
-  try { parsed = text ? JSON.parse(text) : null; } catch { parsed = text; }
+  try {
+    parsed = text ? JSON.parse(text) : null;
+  } catch {
+    parsed = text;
+  }
   if (!res.ok) {
-    const msg = typeof parsed === "object" && parsed && "error" in (parsed as any)
-      ? JSON.stringify((parsed as any).error)
-      : (text || res.statusText);
+    const msg =
+      typeof parsed === "object" && parsed && "error" in (parsed as any)
+        ? JSON.stringify((parsed as any).error)
+        : text || res.statusText;
     throw new Error(`Elasticsearch ${res.status}: ${msg.slice(0, 400)}`);
   }
   return parsed as T;
 }
 
-export async function esPing(auth: EsAuth): Promise<{ name?: string; version?: { number?: string } }> {
+export async function esPing(
+  auth: EsAuth,
+): Promise<{ name?: string; version?: { number?: string } }> {
   return esRequest(auth, "/");
 }
 

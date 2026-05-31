@@ -44,7 +44,11 @@ export const deleteHoneypot = createServerFn({ method: "POST" })
   .inputValidator(z.object({ id: z.string().uuid() }).parse)
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
-    const { error } = await supabase.from("honeypot_keys").delete().eq("id", data.id).eq("user_id", userId);
+    const { error } = await supabase
+      .from("honeypot_keys")
+      .delete()
+      .eq("id", data.id)
+      .eq("user_id", userId);
     if (error) throw new Error(error.message);
     return { ok: true };
   });

@@ -29,7 +29,11 @@ function stripMd(s: string): string {
 
 function fmtDate(s?: string) {
   if (!s) return "—";
-  try { return new Date(s).toLocaleString(); } catch { return s; }
+  try {
+    return new Date(s).toLocaleString();
+  } catch {
+    return s;
+  }
 }
 
 function summarizeToolResult(name: string, r: any): string {
@@ -37,7 +41,8 @@ function summarizeToolResult(name: string, r: any): string {
   if (r.error) return `Error: ${r.error}`;
   if (r.recorded) return "Threat recorded.";
   if (name === "search_logs") {
-    const top = (r.buckets ?? []).slice(0, 8)
+    const top = (r.buckets ?? [])
+      .slice(0, 8)
       .map((b: any) => `  • ${b.key} — ${b.count}${b.bot ? ` [${b.category ?? "bot"}]` : ""}`)
       .join("\n");
     return `Aggregation: ${r.aggregation}\nTotal hits: ${r.total_hits}\nTop buckets:\n${top || "  (none)"}`;
@@ -45,7 +50,11 @@ function summarizeToolResult(name: string, r: any): string {
   if (name === "sample_requests") {
     return `Sampled ${r.count ?? 0} request(s).`;
   }
-  try { return JSON.stringify(r, null, 2).slice(0, 1200); } catch { return String(r); }
+  try {
+    return JSON.stringify(r, null, 2).slice(0, 1200);
+  } catch {
+    return String(r);
+  }
 }
 
 // ---------- renderer ----------
@@ -78,12 +87,23 @@ class Renderer {
     d.setTextColor(0);
   }
 
-  text(s: string, opts: { size?: number; bold?: boolean; color?: [number, number, number]; gap?: number; mono?: boolean; indent?: number } = {}) {
+  text(
+    s: string,
+    opts: {
+      size?: number;
+      bold?: boolean;
+      color?: [number, number, number];
+      gap?: number;
+      mono?: boolean;
+      indent?: number;
+    } = {},
+  ) {
     const d = this.doc;
     const size = opts.size ?? 10.5;
     d.setFont(opts.mono ? "courier" : "helvetica", opts.bold ? "bold" : "normal");
     d.setFontSize(size);
-    if (opts.color) d.setTextColor(...opts.color); else d.setTextColor(30);
+    if (opts.color) d.setTextColor(...opts.color);
+    else d.setTextColor(30);
     const indent = opts.indent ?? 0;
     const lines = d.splitTextToSize(s, CONTENT_W - indent);
     const lh = size * 1.35;
@@ -140,20 +160,31 @@ export function generateSessionPdf(conv: Conv, messages: Msg[]): Blob {
   const generatedAt = new Date().toLocaleString();
 
   // ===== Cover / header =====
-  r.text("CHAFF · BOT TRAFFIC INTELLIGENCE", { size: 9, bold: true, color: [120, 120, 120], gap: 6 });
+  r.text("CHAFF · BOT TRAFFIC INTELLIGENCE", {
+    size: 9,
+    bold: true,
+    color: [120, 120, 120],
+    gap: 6,
+  });
   r.h1("Agent Session Report");
   r.text(conv.title || "Untitled investigation", { size: 12, color: [70, 70, 70], gap: 2 });
   r.text(`Generated: ${generatedAt}`, { size: 9, color: [120, 120, 120], gap: 2 });
-  r.text(`Session started: ${fmtDate(conv.created_at)}`, { size: 9, color: [120, 120, 120], gap: 2 });
+  r.text(`Session started: ${fmtDate(conv.created_at)}`, {
+    size: 9,
+    color: [120, 120, 120],
+    gap: 2,
+  });
   r.text(`Last activity: ${fmtDate(conv.updated_at)}`, { size: 9, color: [120, 120, 120], gap: 8 });
   r.rule();
 
   // ===== Session metrics =====
-  const userMsgs = messages.filter(m => m.role === "user");
-  const asstMsgs = messages.filter(m => m.role === "assistant" && (m.content ?? "").trim());
-  const toolMsgs = messages.filter(m => m.role === "tool");
-  const threatsRecorded = toolMsgs.filter(m => m.tool_name === "record_threat" && (m.tool_result as any)?.recorded).length;
-  const toolErrors = toolMsgs.filter(m => (m.tool_result as any)?.error).length;
+  const userMsgs = messages.filter((m) => m.role === "user");
+  const asstMsgs = messages.filter((m) => m.role === "assistant" && (m.content ?? "").trim());
+  const toolMsgs = messages.filter((m) => m.role === "tool");
+  const threatsRecorded = toolMsgs.filter(
+    (m) => m.tool_name === "record_threat" && (m.tool_result as any)?.recorded,
+  ).length;
+  const toolErrors = toolMsgs.filter((m) => (m.tool_result as any)?.error).length;
   const toolBreakdown: Record<string, number> = {};
   for (const t of toolMsgs) {
     const k = t.tool_name ?? "unknown";
@@ -163,15 +194,20 @@ export function generateSessionPdf(conv: Conv, messages: Msg[]): Blob {
   r.h2("Session at a Glance");
   r.text(
     `• User prompts: ${userMsgs.length}\n` +
-    `• Agent responses: ${asstMsgs.length}\n` +
-    `• Tool invocations: ${toolMsgs.length}\n` +
-    `• Threats recorded: ${threatsRecorded}\n` +
-    `• Tool errors: ${toolErrors}`,
-    { size: 10.5, gap: 8 }
+      `• Agent responses: ${asstMsgs.length}\n` +
+      `• Tool invocations: ${toolMsgs.length}\n` +
+      `• Threats recorded: ${threatsRecorded}\n` +
+      `• Tool errors: ${toolErrors}`,
+    { size: 10.5, gap: 8 },
   );
   if (Object.keys(toolBreakdown).length) {
     r.h3("Tool usage breakdown");
-    r.text(Object.entries(toolBreakdown).map(([k, v]) => `• ${k}: ${v}`).join("\n"), { size: 10, gap: 8 });
+    r.text(
+      Object.entries(toolBreakdown)
+        .map(([k, v]) => `• ${k}: ${v}`)
+        .join("\n"),
+      { size: 10, gap: 8 },
+    );
   }
   r.rule();
 
@@ -190,27 +226,37 @@ export function generateSessionPdf(conv: Conv, messages: Msg[]): Blob {
 
   r.h3("Headline findings");
   const recordedThreats = toolMsgs
-    .filter(m => m.tool_name === "record_threat")
-    .map(m => {
+    .filter((m) => m.tool_name === "record_threat")
+    .map((m) => {
       const args = (m as any).tool_calls ?? {};
       const tr = (m as any).tool_result ?? {};
       return { recorded: !!tr.recorded, error: tr.error, args };
     });
   if (recordedThreats.length) {
     r.text(
-      recordedThreats.map((t, i) =>
-        `${i + 1}. ${t.recorded ? "Recorded threat" : t.error ? `Failed (${t.error})` : "Attempted threat record"}`
-      ).join("\n"),
-      { size: 10.5, gap: 8 }
+      recordedThreats
+        .map(
+          (t, i) =>
+            `${i + 1}. ${t.recorded ? "Recorded threat" : t.error ? `Failed (${t.error})` : "Attempted threat record"}`,
+        )
+        .join("\n"),
+      { size: 10.5, gap: 8 },
     );
   } else {
-    r.text("No threats were recorded during this session.", { size: 10.5, gap: 8, color: [80, 80, 80] });
+    r.text("No threats were recorded during this session.", {
+      size: 10.5,
+      gap: 8,
+      color: [80, 80, 80],
+    });
   }
   r.rule();
 
   // ===== Full transcript =====
   r.h2("Full Transcript");
-  r.text("Every prompt, agent response, and tool call from this session is reproduced below verbatim.", { size: 9.5, color: [110, 110, 110], gap: 8 });
+  r.text(
+    "Every prompt, agent response, and tool call from this session is reproduced below verbatim.",
+    { size: 9.5, color: [110, 110, 110], gap: 8 },
+  );
 
   messages.forEach((m, idx) => {
     const ts = fmtDate(m.created_at);
@@ -228,9 +274,15 @@ export function generateSessionPdf(conv: Conv, messages: Msg[]): Blob {
       const errored = !!tr.error;
       r.text(
         `#${idx + 1}  TOOL · ${m.tool_name ?? "?"} ${errored ? "(error)" : tr.recorded ? "(threat recorded)" : ""}  ·  ${ts}`,
-        { size: 9, bold: true, color: errored ? [180, 60, 60] : [120, 90, 30], gap: 2 }
+        { size: 9, bold: true, color: errored ? [180, 60, 60] : [120, 90, 30], gap: 2 },
       );
-      r.text(summarizeToolResult(m.tool_name ?? "", tr), { size: 9, mono: true, indent: 8, gap: 6, color: [60, 60, 60] });
+      r.text(summarizeToolResult(m.tool_name ?? "", tr), {
+        size: 9,
+        mono: true,
+        indent: 8,
+        gap: 6,
+        color: [60, 60, 60],
+      });
     }
   });
 
@@ -253,7 +305,9 @@ export function generateSessionPdf(conv: Conv, messages: Msg[]): Blob {
 
   r.h3("Recommended next steps");
   const nextSteps = [
-    threatsRecorded ? "Triage the new threat findings on the Threats page and decide on blocking rules." : "Consider running a broader time window if no threats surfaced in this session.",
+    threatsRecorded
+      ? "Triage the new threat findings on the Threats page and decide on blocking rules."
+      : "Consider running a broader time window if no threats surfaced in this session.",
     "Cross-reference findings with the Campaigns view to identify coordinated activity.",
     "If the agent issued tool errors, verify the Elasticsearch connection and field mappings on the Onboard page.",
     "Export or share this report with your security team as the authoritative session artifact.",
