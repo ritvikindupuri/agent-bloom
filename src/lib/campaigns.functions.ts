@@ -280,12 +280,13 @@ export const enrichTopIp = createServerFn({ method: "POST" })
     const ip = (row.fingerprint as any)?.top_ip;
     if (!ip || !/^\d{1,3}(\.\d{1,3}){3}$/.test(ip)) return { intel: null, reason: "no_ip" };
 
-    // ip-api.com pro requires https; free tier is http only — fine from server.
-    const url = `http://ip-api.com/json/${ip}?fields=status,message,country,countryCode,regionName,city,isp,org,as,asname,proxy,hosting,mobile,query`;
+    // Use ipwho.is — free HTTPS endpoint. Avoids MitM tampering of reputation
+    // data that drives blocking decisions. (ip-api.com free tier is HTTP-only.)
+    const url = `https://ipwho.is/${encodeURIComponent(ip)}?fields=success,message,ip,country,country_code,region,city,connection`;
     const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
-    if (!res.ok) throw new Error(`ip-api ${res.status}`);
+    if (!res.ok) throw new Error(`ip-intel ${res.status}`);
     const j: any = await res.json();
-    if (j.status !== "success") return { intel: null, reason: j.message || "lookup_failed" };
+    if (j.success === false) return { intel: null, reason: j.message || "lookup_failed" };
 
     const intel = {
       ip: j.query, country: j.country, country_code: j.countryCode,
