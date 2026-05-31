@@ -7,9 +7,10 @@ import { listConnections } from "@/lib/es.functions";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import ReactMarkdown from "react-markdown";
-import { Bot, Send, Trash2, Plus, Sparkles, Wrench } from "lucide-react";
+import { Bot, Send, Trash2, Plus, Sparkles, Wrench, FileDown } from "lucide-react";
 import { toast } from "sonner";
 import { Hint } from "@/components/Hint";
+import { downloadSessionPdf } from "@/lib/session-pdf";
 
 export const Route = createFileRoute("/app/agent")({
   component: AgentPage,
@@ -70,6 +71,32 @@ function AgentPage() {
     send.mutate(text.trim());
   };
 
+  const fillInput = (text: string) => {
+    setInput(text);
+    // focus textarea after fill
+    requestAnimationFrame(() => {
+      const ta = document.querySelector<HTMLTextAreaElement>('textarea[placeholder^="Ask the agent"]');
+      ta?.focus();
+      ta?.setSelectionRange(text.length, text.length);
+    });
+  };
+
+  const activeConv = convs.data?.conversations?.find((c) => c.id === activeId);
+  const canExport = !!activeId && (msgs.data?.messages?.length ?? 0) > 0;
+
+  const exportPdf = () => {
+    if (!activeConv || !msgs.data?.messages?.length) {
+      toast.error("Nothing to export yet — send a message first.");
+      return;
+    }
+    try {
+      downloadSessionPdf(activeConv as any, msgs.data.messages as any);
+      toast.success("Session report downloaded.");
+    } catch (e: any) {
+      toast.error(e.message ?? "Failed to generate PDF.");
+    }
+  };
+
   if (!hasConn && !conns.isLoading) {
     return (
       <div className="p-10">
@@ -125,12 +152,19 @@ function AgentPage() {
           <Sparkles className="h-4 w-4 text-primary" />
           <span className="font-display text-lg">Chaff Agent</span>
           <span className="text-xs text-muted-foreground">· Gemini · live tools over your index</span>
+          <div className="ml-auto">
+            <Hint label="Generate a professionally formatted PDF report of this entire session — executive summary, full transcript, tool calls, and conclusion." side="bottom">
+              <Button variant="outline" size="sm" onClick={exportPdf} disabled={!canExport}>
+                <FileDown className="h-4 w-4 mr-2" /> Download PDF report
+              </Button>
+            </Hint>
+          </div>
         </div>
 
         <div ref={scrollRef} className="flex-1 overflow-auto">
           <div className="mx-auto max-w-3xl px-6 py-8 space-y-5">
             {!activeId && (msgs.data?.messages?.length ?? 0) === 0 && (
-              <Welcome onPick={submit} />
+              <Welcome onPick={fillInput} />
             )}
             {(msgs.data?.messages ?? []).map((m: any) => (
               <MessageBubble key={m.id} message={m} />
