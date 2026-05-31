@@ -69,24 +69,28 @@ graph TD
    - The React frontend establishes a secure session. The user is prompted to connect their data source in the **Onboarding** flow.
 
 2. **Connecting to External Data (Elasticsearch)**
-   - The user inputs their Elasticsearch endpoint, API key, index pattern, and field mappings (timestamp, IP, user-agent, URL, status code).
+   - The user inputs their Elasticsearch endpoint, API key, index pattern, and field mappings (`timestamp_field`, `ip_field`, `user_agent_field`, `url_field`, `status_field`).
    - The `es.server.ts` module securely tests this connection and saves the active configuration to **Supabase**.
+   - **Crucial Note:** Chaff **does not** copy or ingest your raw Elasticsearch logs into its own database. It strictly performs remote reads (queries) against your cluster and only saves high-confidence findings to Supabase.
 
-3. **Data Analysis & Threat Detection via Chaff Agent**
+3. **Site Reconnaissance (Firecrawl Flow)**
+   - During the initial activation flow (`activate.functions.ts`), Chaff uses **Firecrawl** (`@mendable/firecrawl-js`) to scrape the user's provided website URL.
+   - Firecrawl extracts the raw HTML, rendered HTML, metadata, and site links.
+   - Chaff uses this data to automatically detect the user's tech stack (e.g., Next.js, WordPress, Laravel) and identifies exposed attack surfaces (like `/admin`, `/login`, or `/api/` paths).
+   - This reconnaissance data is directly injected into an AI system prompt, allowing the agent to generate highly specific, custom Elasticsearch detection rules tailored to the user's actual infrastructure.
+
+4. **Data Analysis & Threat Detection via Chaff AI Agent**
    - The user navigates to the Agent interface and initiates a prompt (e.g., "Investigate unusual spikes in the last 24h").
    - The request hits the **TanStack Server Functions** (`agent.functions.ts`), where it constructs a system prompt for the **Chaff AI Agent** (powered by Google's Gemini through the Lovable Cloud API).
-   - The Agent uses an autonomous loop to call specific backend tools (`search_logs`, `sample_requests`, `record_threat`).
-   - `search_logs`: Translates the Agent's intent into an Elasticsearch DSL query, sending it to the **Customer Elasticsearch** via `es.server.ts`. It retrieves aggregated buckets (Top IPs, Top Paths, Traffic spikes).
-   - The Agent analyzes the response, classifies User-Agents, determines if they are malicious bots or humans, and then calls `record_threat`.
+   - The Agent uses an autonomous loop to call specific backend tools:
+     - `search_logs`: Accepts a time `range_minutes`, `size`, `query_filter` (custom DSL), and an `aggregations` array (e.g., `["top_ips", "top_user_agents", "status_codes"]`). It dynamically constructs an Elasticsearch DSL query, sending it to the **Customer Elasticsearch** via `es.server.ts`. It returns structured bucket counts directly to the LLM.
+     - `sample_requests`: Accepts a `query_filter` and `size` to retrieve unaggregated, raw log documents. This allows the AI to inspect exact HTTP headers, paths, and timestamps for deep forensics.
+     - `record_threat`: Translates AI conclusions into formal records.
+   - The Agent analyzes the Elasticsearch responses, classifies User-Agents, determines if they are malicious bots or humans, and calls `record_threat`.
 
-4. **Recording and Visualizing Threats**
-   - When the Agent calls `record_threat`, the finding is saved to the `threat_findings` table in **Supabase**.
+5. **Recording and Visualizing Threats**
+   - When the Agent calls `record_threat`, the finding (containing IP, User-Agent, request counts, and an evidence summary) is saved to the `threat_findings` table in **Supabase**.
    - The React frontend continuously pulls updates from Supabase via **TanStack Query** and visualizes them on the **Threats Dashboard**.
-
-5. **Honeypot Creation (Firecrawl Flow)**
-   - To catch bad actors proactively, the user utilizes the **Honeypots** feature.
-   - The user inputs a target URL. The server function (`honeypots.functions.ts`) triggers the **Firecrawl API** to crawl the target site.
-   - Firecrawl returns the structure (HTML, forms, links) of the page. Chaff then generates deceptive "Trap" pages simulating vulnerabilities (e.g., exposed admin panels, fake credentials) that legitimate users would never click, but scanners and bots would scrape.
 
 6. **Block Rules & Mitigation**
    - Based on identified threats (from the Agent or triggered Honeypots), the user creates **Block Rules**.
@@ -161,8 +165,9 @@ The core intelligence of the application resides in `agent.functions.ts`.
 
 - **Purpose**: Proactive defense mechanism to identify and record bad actors before they hit production data.
 - **Capabilities**:
-  - **Site Crawling:** Uses Firecrawl (`@mendable/firecrawl-js`) to ingest the customer's legitimate website structure.
-  - **Trap Generation (`app.honeypots.tsx`):** Automatically generates highly convincing decoy pages. These traps include hidden links (invisible to humans) that only aggressive crawlers and bots will follow. Once an entity visits a trap URL (e.g., `/trap/admin-login-backup`), its IP and User-Agent are instantly flagged as malicious.
+  - **Trap Generation (`app.honeypots.tsx`, `honeypots.functions.ts`):** Automatically generates highly convincing decoy URLs. By giving the application a label, Chaff generates a randomized hash slug for a hidden URL. These traps can be placed as hidden links (invisible to humans) in the user's actual source code. Any aggressive crawler or bot that blindly follows every link will eventually hit this trap.
+  - **Detection:** Once an entity visits a trap URL (e.g., `/trap/admin-login-backup`), its IP and User-Agent are instantly flagged as malicious and saved.
+    _(Note: Unlike the initial activation which actively crawls the site with Firecrawl to learn the stack, the Honeypot feature generates standalone passive listener endpoints that rely on the user placing the link in their code)._
 
 ### Campaigns
 
