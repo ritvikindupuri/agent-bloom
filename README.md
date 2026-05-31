@@ -126,6 +126,35 @@ npm run dev
 
 Open `http://localhost:8080` (or the port provided by Vite in your terminal) in your web browser. Click the sign-in button and **Sign up with Google** to create an account and begin using Chaff.
 
+### 7. Generate Test Bot Traffic (Optional)
+
+To test Chaff's detection capabilities, you can simulate malicious bot traffic against your web application. Your web application must be logging requests to the Elasticsearch instance connected to Chaff.
+
+Chaff automatically flags traffic from known bot User-Agents (like `python-requests`, `curl`, `puppeteer`, etc.) and identifies patterns like rapid burst requests or scanner behaviors.
+
+Open a new terminal and run one of the following commands to generate test traffic:
+
+**Option A: Simulate a Vulnerability Scanner**
+This simulates a bot probing for sensitive paths using the `python-requests` User-Agent:
+```bash
+for path in "/admin" "/wp-admin" "/.env" "/config.json" "/login"; do
+  curl -A "python-requests/2.28.1" "https://your-app.com$path"
+  sleep 0.5
+done
+```
+
+**Option B: Simulate Credential Stuffing / Burst Traffic**
+This simulates a rapid burst of requests to a login endpoint using the `curl` User-Agent:
+```bash
+for i in {1..50}; do
+  curl -X POST -A "curl/7.68.0" "https://your-app.com/login"
+done
+```
+
+*(Note: Replace `https://your-app.com` with the actual URL of your application that is logging to Elasticsearch).*
+
+Once the traffic is generated, go to the **Agent** tab in the Chaff UI and ask: _"Investigate recent traffic to /login. Are there any bot attacks?"_ The Agent will identify the bot traffic and record it in the **Threats** tab.
+
 ---
 
 ## How to Use the Application
@@ -177,3 +206,9 @@ With data flowing, it's time to investigate.
 ### Step 7: Live View
 
 - **Live:** Click the **Live** tab to see real-time unaggregated log activity flowing directly from your Elasticsearch instance.
+
+---
+
+## License
+
+This project is licensed under the [MIT License](https://opensource.org/licenses/MIT) - an OSI-approved open source license.
