@@ -7,9 +7,10 @@ import { listConnections } from "@/lib/es.functions";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import ReactMarkdown from "react-markdown";
-import { Bot, Send, Trash2, Plus, Sparkles, Wrench } from "lucide-react";
+import { Bot, Send, Trash2, Plus, Sparkles, Wrench, FileDown } from "lucide-react";
 import { toast } from "sonner";
 import { Hint } from "@/components/Hint";
+import { downloadSessionPdf } from "@/lib/session-pdf";
 
 export const Route = createFileRoute("/app/agent")({
   component: AgentPage,
