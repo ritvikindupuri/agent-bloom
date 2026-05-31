@@ -248,7 +248,8 @@ sequenceDiagram
 ### MCP (Model Context Protocol) Server
 
 - **Purpose**: Seamless integration with external AI developer tools (like Cursor or other MCP clients).
-- **Capabilities (`mcp.functions.ts`)**: Hosts a local MCP server that exposes Chaff's threat intelligence context directly to local AI assistants, allowing developers to ask their IDE questions like "Are there any threats targeting the authentication endpoints we just deployed?"
+- **Capabilities (`mcp.functions.ts`, `mcp.ts`)**: Hosts a local MCP server that exposes Chaff's threat intelligence context directly to local AI assistants, allowing developers to ask their IDE questions like "Are there any threats targeting the authentication endpoints we just deployed?"
+- **Gemini/Google Cloud Agent Builder Integration**: The MCP server enables powerful integrations with external enterprise AI agents. For example, a Google Cloud Agent Builder or Gemini application can connect to Chaff's MCP endpoint, calling tools like `is_known_bot`, `list_recent_campaigns`, `get_campaign`, and `lookup_fingerprint`. This allows the external agent to query Elasticsearch log data and bot traffic intelligence seamlessly, while Chaff handles the complex data aggregation, threat scoring, and honeypot validation in the background.
 
 ---
 
