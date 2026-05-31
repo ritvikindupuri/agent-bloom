@@ -62,6 +62,8 @@ graph TD
     ChaffAgent -->|Tool: search_logs, record_threat| Server
 ```
 
+<div align="center"><em>Figure 1: Core System Architecture</em></div><br/>
+
 ### Flow by Flow Explanation
 
 1. **User Authentication & Initialization**
@@ -108,6 +110,37 @@ Every aspect of Chaff is designed to provide comprehensive bot-traffic analysis.
 ### IP Enrichment & Threat Confidence Scoring
 
 Chaff employs a rigorous multi-layered pipeline to score and classify traffic automatically, centralized in `ip-intel.server.ts`. This ensures raw IPs and User-Agents are enriched with actionable context before being displayed as threats.
+
+```mermaid
+graph TD
+    Start([New IP Detected]) --> CheckVol[1. Check 24h Event Volume]
+    CheckVol --> BaseScore[Set Baseline Confidence]
+
+    BaseScore --> Fork{Parallel Enrichment}
+
+    Fork --> rDNS[2. Reverse DNS Lookup]
+    Fork --> Abuse[3. AbuseIPDB Lookup]
+
+    rDNS --> isVerified{Claims to be<br/>Verified Bot?}
+    isVerified -- Yes --> Forward[Forward DNS Lookup]
+    isVerified -- No --> DataTor[4. Check Tor & Datacenter Patterns]
+
+    Forward --> Match{Does IP Match?}
+    Match -- Yes --> Verified(Classify: verified_bot<br/>Confidence: 0)
+    Match -- No --> Spoof(Flag: Spoofed PTR<br/>Add +40 Score)
+    Spoof --> DataTor
+
+    DataTor --> UAScore[5. User-Agent Heuristics]
+    Abuse --> UAScore
+
+    UAScore --> FinalMath{Calculate Final Score}
+    FinalMath -- "< 15" --> Benign(Benign)
+    FinalMath -- "15-39" --> Unknown(Unknown)
+    FinalMath -- "40-69" --> Suspicious(Suspicious)
+    FinalMath -- "70+" --> Malicious(Malicious)
+```
+
+<div align="center"><em>Figure 2: IP Enrichment & Threat Confidence Scoring Pipeline</em></div><br/>
 
 - **Purpose**: To calculate a reliable 0-100 confidence score determining whether an IP is `benign` (< 15), `unknown` (15-39), `suspicious` (40-69), or `malicious` (70+).
 - **Capabilities & Logic Flow**:
@@ -162,6 +195,34 @@ The core intelligence of the application resides in `agent.functions.ts`.
   - **Threats Dashboard (`app.threats.tsx`):** Displays aggregated metrics (Total Requests, Bot vs. Human Traffic breakdown). It provides real-time time-series charts (via Recharts) and lists active threats recorded by the Agent.
 
 ### Honeypots & Traps
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant ChaffServer as Chaff App Server
+    participant Firecrawl as Firecrawl API
+    participant Attacker as Automated Crawler (Bot)
+
+    rect rgb(0,0,0, 0.05)
+    Note over User, Firecrawl: Flow A: Initial Site Activation (Reconnaissance)
+    User->>ChaffServer: "Activate Chaff" with Site URL
+    ChaffServer->>Firecrawl: Scrape Target URL
+    Firecrawl-->>ChaffServer: Returns HTML Structure & Links
+    ChaffServer-->>User: Identifies Tech Stack & Attack Surface
+    end
+
+    rect rgb(0,0,0, 0.05)
+    Note over User, Attacker: Flow B: Honeypot Trap Generation (Passive)
+    User->>ChaffServer: Create New Honeypot
+    ChaffServer-->>User: Generates Hash Slug (e.g., /trap/abc123xyz)
+    Note right of User: User embeds hidden trap<br/>link in their website code
+    Attacker->>Attacker: Scrapes user's website
+    Attacker->>ChaffServer: Hits /trap/abc123xyz
+    ChaffServer->>ChaffServer: Instantly flags IP as Malicious Threat
+    end
+```
+
+<div align="center"><em>Figure 3: Active Reconnaissance vs Passive Honeypot Execution</em></div><br/>
 
 - **Purpose**: Proactive defense mechanism to identify and record bad actors before they hit production data.
 - **Capabilities**:
