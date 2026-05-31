@@ -110,8 +110,12 @@ export const Route = createFileRoute("/api/public/beacon")({
           }
         }
 
+        // Do NOT expose verdict/score/reasons/signature_hash to clients —
+        // an adversary could iterate on payloads to evade detection.
+        // Full result is logged server-side via the ES index above.
+        void indexed; void indexError;
         return new Response(
-          JSON.stringify({ ok: true, verdict: result.verdict, score: result.score, reasons: result.reasons, signature_hash: result.signature_hash, indexed, indexError }),
+          JSON.stringify({ ok: true }),
           { status: 200, headers: { ...cors, "Content-Type": "application/json" } }
         );
       },
