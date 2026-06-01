@@ -1,4 +1,4 @@
-# Chaff
+# Chaff - Autonomous Bot Defense
 
 **Autonomous bot-traffic analyst powered by AI and your Elasticsearch logs. Separate humans from bots.**
 
